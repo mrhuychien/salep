@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Đăng ký tham gia chương trình</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#fef08a",
+                        "surface-container-low": "#f9fafb",
+                        "on-surface-variant": "#4b5563",
+                        "surface": "#ffffff",
+                        "surface-bright": "#ffffff",
+                        "inverse-primary": "#fca5a5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#fee2e2",
+                        "on-secondary-fixed": "#713f12",
+                        "on-primary-fixed-variant": "#991b1b",
+                        "on-primary-container": "#7f1d1d",
+                        "surface-container-highest": "#d1d5db",
+                        "on-secondary-container": "#713f12",
+                        "secondary-container": "#fef08a",
+                        "error": "#ba1a1a",
+                        "tertiary": "#422700",
+                        "surface-dim": "#f3f4f6",
+                        "primary": "#d92d20",
+                        "on-background": "#111827",
+                        "primary-fixed": "#fecaca",
+                        "outline": "#9ca3af",
+                        "on-primary-fixed": "#450a0a",
+                        "tertiary-container": "#613b00",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-tertiary-container": "#f49d0a",
+                        "on-secondary-fixed-variant": "#a16207",
+                        "background": "#ffffff",
+                        "secondary-fixed-dim": "#fde047",
+                        "primary-fixed-dim": "#fca5a5",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-container-high": "#e5e7eb",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-surface": "#111827",
+                        "on-error": "#ffffff",
+                        "surface-container": "#f3f4f6",
+                        "inverse-on-surface": "#f9fafb",
+                        "tertiary-fixed": "#ffddb8",
+                        "secondary": "#eab308",
+                        "outline-variant": "#e5e7eb",
+                        "surface-variant": "#f3f4f6",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#d92d20",
+                        "inverse-surface": "#1f2937"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "8px",
+                        "touch-target-min": "48px",
+                        "sm": "12px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "container-padding": "16px",
+                        "base": "4px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "title-md": ["Manrope"],
+                        "price-display": ["Manrope"],
+                        "body-sm": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "display-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+                        "title-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "price-display": ["20px", { "lineHeight": "24px", "fontWeight": "800" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "700" }],
+                        "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen flex flex-col relative pb-32">
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-50 bg-surface border-b border-outline-variant flex justify-between items-center h-touch-target-min px-container-padding w-full max-w-[1200px] mx-auto">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors active:opacity-80 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary flex-1 text-center pr-10">Đăng ký tham gia</h1>
+</header>
+<main class="flex-1 w-full max-w-[1200px] mx-auto p-container-padding flex flex-col gap-lg">
+<!-- Select Point of Sale -->
+<section class="flex flex-col gap-xs">
+<label class="font-title-md text-title-md text-on-surface">Chọn điểm bán</label>
+<div class="relative">
+<button class="w-full h-14 bg-surface-container-lowest border border-outline-variant rounded-xl px-md flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent active:scale-[0.98] transition-transform">
+<span class="font-body-lg text-body-lg text-on-surface">Tạp hoá Cô Lan</span>
+<span class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+</button>
+<!-- Mini Card Preview (Selected State) -->
+<div class="mt-sm bg-surface-container-lowest border border-outline-variant rounded-xl p-sm flex items-center gap-sm">
+<img class="w-12 h-12 rounded-lg object-cover" data-alt="A small, close-up photograph of a brightly lit local grocery store storefront in Vietnam. The store is filled with neatly organized, colorful FMCG products. The lighting is sunny and natural, creating a cheerful and inviting atmosphere. Professional product photography style, highly detailed." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS0RM0KlDrKQ6obnVY0ektwLC8Nx0FCWPOsMFZ-uU1xpcv0iO5OtDRpRFIQCLPYozEvXgIKnRq9sjqKvJvgSyyipfVDy6K39DOPHI1GVK7tGbjDX5oWqniRuVDmOatGgFihiN-0K5qH--zVhOkvORkdWMamBpWb7mNyOHtW_0ad7L6gnDNlLwRVMk-nwD6bNSAp5vKbG1l5C5VpGerpuldjJioBvxsJkZIT4DJru4rR6pIbAW1TXp3YJ7AgXELgsJVyVCf-9wYIElo"/>
+<div class="flex-1 flex flex-col justify-center">
+<span class="font-title-md text-title-md text-on-surface line-clamp-1">Tạp hoá Cô Lan</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">0901234567 • Q. Bình Thạnh</span>
+</div>
+</div>
+<!-- Create New Point Action -->
+<button class="mt-sm w-full h-12 bg-surface-container-low text-primary font-title-md text-title-md rounded-xl flex items-center justify-center gap-xs hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                    Tạo điểm mới
+                </button>
+</div>
+</section>
+<!-- Select Program -->
+<section class="flex flex-col gap-xs">
+<label class="font-title-md text-title-md text-on-surface">Chọn chương trình</label>
+<button class="w-full h-14 bg-surface-container-lowest border border-outline-variant rounded-xl px-md flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent active:scale-[0.98] transition-transform">
+<span class="font-body-lg text-body-lg text-on-surface-variant">Chọn chương trình đang diễn ra</span>
+<span class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+</button>
+</section>
+<!-- Display Photo Upload -->
+<section class="flex flex-col gap-xs">
+<label class="font-title-md text-title-md text-on-surface">Ảnh trưng bày của chương trình này</label>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-xs">Chụp ảnh cách trưng bày sản phẩm tại cửa hàng.</p>
+<button class="w-full h-48 border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest flex flex-col items-center justify-center gap-sm hover:bg-surface-container-low transition-colors active:scale-[0.98]">
+<div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="photo_camera" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+<span class="font-title-md text-title-md text-primary">Chụp ảnh</span>
+</button>
+<!-- GPS Chip -->
+<div class="inline-flex items-center gap-xs bg-surface-container-high px-sm py-xs rounded-full self-start mt-sm">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="location_on" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">GPS: 10.762622, 106.660172</span>
+<span class="material-symbols-outlined text-secondary text-sm ml-xs" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</section>
+</main>
+<!-- Bottom Action Buttons (Fixed) -->
+<div class="fixed bottom-0 w-full z-50 shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] bg-surface p-container-padding flex flex-col gap-sm">
+<button class="w-full h-touch-target-min bg-primary text-on-primary rounded-xl font-title-md text-title-md flex items-center justify-center active:scale-95 transition-transform duration-200">
+            Gửi duyệt
+        </button>
+<button class="w-full h-touch-target-min bg-transparent border border-primary text-primary rounded-xl font-title-md text-title-md flex items-center justify-center active:scale-95 transition-transform duration-200">
+            Lưu nháp
+        </button>
+</div>
+</body></html>

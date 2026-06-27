@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hồ sơ của tôi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#fef08a",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface-variant": "#434652",
+                      "surface": "#f8f9ff",
+                      "surface-bright": "#f8f9ff",
+                      "inverse-primary": "#fca5a5",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#fef08a",
+                      "on-secondary-fixed": "#422006",
+                      "on-primary-fixed-variant": "#7f1d1d",
+                      "on-primary-container": "#854d0e",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-secondary-container": "#854d0e",
+                      "secondary-container": "#fef08a",
+                      "error": "#ba1a1a",
+                      "tertiary": "#422700",
+                      "surface-dim": "#cbdbf5",
+                      "primary": "#d92d20",
+                      "on-background": "#0b1c30",
+                      "primary-fixed": "#fecaca",
+                      "outline": "#747783",
+                      "on-primary-fixed": "#450a0a",
+                      "tertiary-container": "#613b00",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "on-tertiary-container": "#f49d0a",
+                      "on-secondary-fixed-variant": "#713f12",
+                      "background": "#f8f9ff",
+                      "secondary-fixed-dim": "#fde047",
+                      "primary-fixed-dim": "#f87171",
+                      "on-tertiary-fixed": "#2a1700",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "on-surface": "#0b1c30",
+                      "on-error": "#ffffff",
+                      "surface-container": "#e5eeff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "tertiary-fixed": "#ffddb8",
+                      "secondary": "#ca8a04",
+                      "outline-variant": "#c4c6d4",
+                      "surface-variant": "#d3e4fe",
+                      "on-primary": "#ffffff",
+                      "surface-tint": "#d92d20",
+                      "inverse-surface": "#213145"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xs": "8px",
+                      "touch-target-min": "48px",
+                      "sm": "12px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "container-padding": "16px",
+                      "base": "4px",
+                      "xl": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "title-md": [
+                              "Manrope"
+                      ],
+                      "price-display": [
+                              "Manrope"
+                      ],
+                      "body-sm": [
+                              "Manrope"
+                      ],
+                      "label-caps": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ],
+                      "display-lg": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "title-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "price-display": [
+                              "20px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "800"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "800"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface pb-[80px]">
+<!-- Top App Bar -->
+<header class="sticky top-0 w-full z-50 border-b border-outline-variant bg-surface flex justify-between items-center h-touch-target-min px-container-padding w-full max-w-[1200px] mx-auto md:hidden">
+<div class="flex items-center gap-sm">
+<!-- Back button would go here if not root, but it is root so maybe just title -->
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Hồ sơ của tôi</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary cursor-pointer active:opacity-80 transition-colors" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</div>
+</header>
+<main class="px-container-padding py-lg flex flex-col gap-lg max-w-[600px] mx-auto md:hidden">
+<!-- Avatar Section -->
+<section class="flex flex-col items-center justify-center pt-md">
+<div class="relative w-[100px] h-[100px]">
+<img alt="Profile Avatar" class="w-full h-full object-cover rounded-full border-2 border-primary" data-alt="A close up professional headshot of an asian male in a bright corporate setting. The lighting is soft and even. He is wearing a simple crisp white shirt. The background is a slightly blurred light gray wall. High resolution, high contrast modern style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOeuoif5qUPYHTHAxA9SsTz9hR39mkDJZ7BgDfABk7Qa50Th9oX-e-1edYNQ1JhsgB7lhD3Q9mf1igJMvLiE8i4-VPkCAE3dlusPCllFg4Zcnwh4vqiacO8os9hbCZqNUc2MQtlhQHjyfN29JXxDyDfnOGA2b30osx_vBqXObLiDCVhgo8XM9PFAZFiS0uEtwn8ucqbMASG9dkn8EBp0Q6LXkQJ0JgyxAnD60coPn6hSiFxr_lHgGE6GFlobp2mmKl6olo8W0SlFX0"/>
+<button aria-label="Edit Avatar" class="absolute bottom-0 right-0 bg-primary-container text-on-primary-container rounded-full p-xs flex items-center justify-center shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">camera_alt</span>
+</button>
+</div>
+<h2 class="font-title-md text-title-md text-on-surface mt-sm">Nguyễn Văn Đại Diện</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">ID: NV-28491</p>
+</section>
+<!-- Form Sections -->
+<form class="flex flex-col gap-lg">
+<!-- Personal Info -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md shadow-sm">
+<h3 class="font-title-md text-title-md text-primary mb-xs border-b border-outline-variant pb-xs">Thông tin cá nhân</h3>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="fullName">Họ tên</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" id="fullName" type="text" value="Nguyễn Văn Đại Diện"/>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="phone">Số điện thoại</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" id="phone" type="tel" value="0901234567"/>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="cccd">CCCD</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" id="cccd" type="text" value="079090123456"/>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="npp">NPP trực thuộc</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface-variant px-sm font-body-lg text-body-lg text-on-surface-variant cursor-not-allowed" id="npp" readonly="" type="text" value="NPP Tiến Đạt"/>
+</div>
+</section>
+<!-- Bank Info -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex flex-col gap-md shadow-sm">
+<h3 class="font-title-md text-title-md text-primary mb-xs border-b border-outline-variant pb-xs">Tài khoản ngân hàng</h3>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="bankName">Tên chủ TK</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface uppercase focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" id="bankName" type="text" value="NGUYEN VAN DAI DIEN"/>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="bankAccount">Số tài khoản</label>
+<input class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" id="bankAccount" type="text" value="1903456789011"/>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="bank">Ngân hàng</label>
+<select class="w-full h-touch-target-min rounded-lg border border-outline-variant bg-surface px-sm font-body-lg text-body-lg text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none" id="bank">
+<option value="techcombank">Techcombank</option>
+<option value="vietcombank">Vietcombank</option>
+<option value="mbbank">MB Bank</option>
+</select>
+</div>
+</section>
+<!-- Actions -->
+<div class="flex flex-col gap-md mt-sm">
+<button class="w-full h-touch-target-min bg-primary text-on-primary rounded-lg font-title-md text-title-md flex items-center justify-center active:opacity-80 transition-opacity shadow-[0px_4px_12px_rgba(0,0,0,0.05)]" type="button">
+                    Lưu thay đổi
+                </button>
+<button class="w-full h-touch-target-min bg-transparent text-error rounded-lg font-body-lg text-body-lg flex items-center justify-center active:opacity-80 transition-opacity underline" type="button">
+                    Đăng xuất
+                </button>
+</div>
+</form>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 w-full z-50 shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] bg-surface flex justify-around items-center px-container-padding py-xs md:hidden border-t border-outline-variant">
+<!-- Inactive Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-xs hover:bg-surface-container-high transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">home</span>
+<span class="font-label-caps text-label-caps mt-1">Trang chủ</span>
+</a>
+<!-- Inactive Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-xs hover:bg-surface-container-high transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">storefront</span>
+<span class="font-label-caps text-label-caps mt-1">Điểm bán</span>
+</a>
+<!-- Inactive Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-xs hover:bg-surface-container-high transition-colors active:scale-95 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">campaign</span>
+<span class="font-label-caps text-label-caps mt-1">Chương trình</span>
+</a>
+<!-- Active Tab -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl p-xs hover:bg-surface-container-high transition-colors active:scale-95 duration-200 w-16" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-caps text-label-caps mt-1">Hồ sơ</span>
+</a>
+</nav>
+</body></html>

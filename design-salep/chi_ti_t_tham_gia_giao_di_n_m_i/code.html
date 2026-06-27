@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chi tiết lượt tham gia</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#6ffbbe",
+                      "surface-container-low": "#eff4ff",
+                      "on-surface-variant": "#434652",
+                      "surface": "#f8f9ff",
+                      "surface-bright": "#f8f9ff",
+                      "inverse-primary": "#b2c5ff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "primary-container": "#d92d20",
+                      "on-secondary-fixed": "#002113",
+                      "on-primary-fixed-variant": "#08409e",
+                      "on-primary-container": "#ffffff",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-secondary-container": "#00714d",
+                      "secondary-container": "#6cf8bb",
+                      "error": "#ba1a1a",
+                      "tertiary": "#422700",
+                      "surface-dim": "#cbdbf5",
+                      "primary": "#d92d20",
+                      "on-background": "#0b1c30",
+                      "primary-fixed": "#dae2ff",
+                      "outline": "#747783",
+                      "on-primary-fixed": "#001848",
+                      "tertiary-container": "#613b00",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "on-tertiary-container": "#f49d0a",
+                      "on-secondary-fixed-variant": "#005236",
+                      "background": "#f8f9ff",
+                      "secondary-fixed-dim": "#4edea3",
+                      "primary-fixed-dim": "#b2c5ff",
+                      "on-tertiary-fixed": "#2a1700",
+                      "surface-container-high": "#dce9ff",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "on-surface": "#0b1c30",
+                      "on-error": "#ffffff",
+                      "surface-container": "#e5eeff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "tertiary-fixed": "#ffddb8",
+                      "secondary": "#006c49",
+                      "outline-variant": "#c4c6d4",
+                      "surface-variant": "#d3e4fe",
+                      "on-primary": "#ffffff",
+                      "surface-tint": "#2f59b7",
+                      "inverse-surface": "#213145"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xs": "8px",
+                      "touch-target-min": "48px",
+                      "sm": "12px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "container-padding": "16px",
+                      "base": "4px",
+                      "xl": "32px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "title-md": [
+                              "Manrope"
+                      ],
+                      "price-display": [
+                              "Manrope"
+                      ],
+                      "body-sm": [
+                              "Manrope"
+                      ],
+                      "label-caps": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ],
+                      "display-lg": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "title-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "price-display": [
+                              "20px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "800"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "800"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-sm min-h-screen pb-24">
+<!-- App Bar -->
+<header class="sticky top-0 w-full z-50 border-b border-outline-variant bg-surface flex justify-between items-center h-touch-target-min px-container-padding w-full max-w-[1200px] mx-auto">
+<div class="flex items-center gap-xs text-primary cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-extrabold truncate">Chi tiết lượt tham gia</h1>
+<div class="w-8"></div> <!-- Placeholder for balance -->
+</header>
+<main class="max-w-3xl mx-auto md:p-container-padding">
+<!-- Status Banner (Amber) -->
+<div class="bg-[#fef3c7] text-[#b45309] px-container-padding py-sm flex items-center justify-between">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pending</span>
+<span class="font-title-md text-title-md">Chờ duyệt</span>
+</div>
+<span class="font-body-sm text-body-sm opacity-80">Cập nhật: 10:32 20/01</span>
+</div>
+<!-- Rejection Reason (Hidden by default, shown here for completeness) -->
+<!--
+        <div class="bg-error-container text-on-error-container px-container-padding py-sm m-container-padding rounded-lg flex items-start gap-xs">
+            <span class="material-symbols-outlined mt-1">error</span>
+            <div>
+                <h3 class="font-title-md text-title-md">Từ chối</h3>
+                <p class="font-body-sm text-body-sm mt-1">Ảnh chụp không rõ ràng, vui lòng chụp lại toàn bộ cửa hàng bao gồm cả biển hiệu.</p>
+            </div>
+        </div>
+        -->
+<!-- Display Photo -->
+<div class="w-full h-64 md:rounded-lg overflow-hidden md:mt-md relative">
+<img alt="Storefront photo" class="w-full h-full object-cover" data-alt="A brightly lit photo of a small grocery store storefront in Vietnam. Shelves are stocked with neatly arranged fast-moving consumer goods. The store sign is visible above the entrance. The lighting is natural and clear, indicating daytime. The aesthetic is realistic and documentary-style, suitable for a sales field verification app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9pXYxpQMGYtP3pq2Nx0_5anxSR4DnWGS78CQiSggu5SgsI7kfOv4Riq3LiAe2qaWZwTPintZk_VoGjiMCAYBfeBRxlBnvpiYaAO0n_AxOU1nNWoIHMkZe_f9sx7dsatePpJV70ZJMn53DMi0g5qYtCxXDKhqZge8wtr4fgyCjbpb2dYWvnZM5Cl5oK5pefmaNZ6n00XM3okdoWGUl2xcFoOFtJxm4FNnkVFaGmKxKQMvKwFXXmAE-GMB9U_PKh7OKtGso1tPFoHNw"/>
+<!-- <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div> -->
+</div>
+<div class="p-container-padding space-y-md">
+<!-- Point Info Card -->
+<section class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant">
+<h2 class="font-title-md text-title-md text-primary mb-sm">Thông tin điểm bán</h2>
+<div class="space-y-sm">
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-outline">storefront</span>
+<div>
+<p class="font-title-md text-title-md">Tạp hoá Cô Lan</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">NPP: Minh Quang</p>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline">phone</span>
+<p class="font-body-sm text-body-sm">090 123 4567</p>
+</div>
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-outline mt-1">location_on</span>
+<p class="font-body-sm text-body-sm">123 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, TP.HCM</p>
+</div>
+</div>
+</section>
+<!-- Program Info Card -->
+<section class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant">
+<h2 class="font-title-md text-title-md text-primary mb-sm">Thông tin chương trình</h2>
+<div class="space-y-sm">
+<div class="flex items-start gap-sm">
+<span class="material-symbols-outlined text-outline">campaign</span>
+<div>
+<p class="font-title-md text-title-md">Trưng bày Tết 2024</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Gói Bạc - Hỗ trợ tủ mát</p>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline">calendar_month</span>
+<p class="font-body-sm text-body-sm">01/01/2024 - 31/01/2024</p>
+</div>
+</div>
+</section>
+<!-- Timeline -->
+<section class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant">
+<h2 class="font-title-md text-title-md text-primary mb-sm">Lịch sử</h2>
+<div class="relative pl-6 border-l-2 border-surface-variant space-y-md">
+<!-- Event 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-primary rounded-full ring-4 ring-surface-container-lowest"></div>
+<p class="font-body-sm text-body-sm font-semibold">Tạo bởi NV An</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">10:32 20/01</p>
+</div>
+<!-- Event 2 (Example, normally wouldn't show if pending, but requested in prompt) -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-surface-variant rounded-full ring-4 ring-surface-container-lowest"></div>
+<p class="font-body-sm text-body-sm font-semibold">Duyệt bởi QL Bình</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">14:00 21/01</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 w-full z-50 bg-surface border-t border-outline-variant p-container-padding md:max-w-3xl md:mx-auto md:left-1/2 md:-translate-x-1/2">
+<button class="w-full min-h-[48px] bg-primary text-on-primary rounded-lg font-title-md text-title-md flex items-center justify-center gap-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined">edit</span>
+            Chỉnh sửa
+        </button>
+</div>
+</body></html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tạo điểm trưng bày</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-secondary-container": "#6d4f00",
+                "outline-variant": "#e5bdb7",
+                "on-tertiary": "#ffffff",
+                "surface-bright": "#f9f9ff",
+                "primary-fixed": "#ffdad5",
+                "surface-container-highest": "#dbe2f9",
+                "on-primary-container": "#fff6f5",
+                "primary": "#b50c08",
+                "on-secondary-fixed": "#261900",
+                "secondary": "#7a5900",
+                "tertiary-container": "#b75443",
+                "on-secondary-fixed-variant": "#5c4200",
+                "inverse-primary": "#ffb4a8",
+                "on-primary-fixed-variant": "#930002",
+                "primary-container": "#d92d20",
+                "surface-dim": "#d2daf0",
+                "surface-container": "#e9edff",
+                "secondary-fixed-dim": "#fbbc1f",
+                "surface-container-high": "#e0e8ff",
+                "on-surface-variant": "#5c403b",
+                "surface": "#f9f9ff",
+                "secondary-container": "#febf23",
+                "surface-variant": "#dbe2f9",
+                "on-error-container": "#93000a",
+                "inverse-on-surface": "#edf0ff",
+                "on-secondary": "#ffffff",
+                "background": "#f9f9ff",
+                "on-background": "#141b2c",
+                "surface-container-low": "#f1f3ff",
+                "tertiary-fixed-dim": "#ffb4a6",
+                "on-error": "#ffffff",
+                "error-container": "#ffdad6",
+                "tertiary-fixed": "#ffdad4",
+                "primary-fixed-dim": "#ffb4a8",
+                "surface-container-lowest": "#ffffff",
+                "secondary-fixed": "#ffdea2",
+                "on-tertiary-fixed": "#400200",
+                "outline": "#906f6a",
+                "on-primary-fixed": "#410000",
+                "on-primary": "#ffffff",
+                "surface-tint": "#bc140d",
+                "tertiary": "#973d2d",
+                "on-surface": "#141b2c",
+                "on-tertiary-container": "#fff7f5",
+                "on-tertiary-fixed-variant": "#7f2a1d",
+                "inverse-surface": "#293041",
+                "error": "#ba1a1a"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "xs": "4px",
+                "md": "16px",
+                "margin-mobile": "16px",
+                "lg": "24px",
+                "xl": "32px",
+                "2xl": "48px",
+                "sm": "8px",
+                "base": "4px",
+                "3xl": "64px",
+                "gutter": "24px",
+                "margin-desktop": "32px"
+        },
+        "fontFamily": {
+                "headline-xl-mobile": [
+                        "Manrope"
+                ],
+                "label-md": [
+                        "Manrope"
+                ],
+                "label-sm": [
+                        "Manrope"
+                ],
+                "body-sm": [
+                        "Manrope"
+                ],
+                "body-md": [
+                        "Manrope"
+                ],
+                "headline-xl": [
+                        "Manrope"
+                ],
+                "body-lg": [
+                        "Manrope"
+                ],
+                "headline-lg": [
+                        "Manrope"
+                ],
+                "headline-lg-mobile": [
+                        "Manrope"
+                ],
+                "headline-md": [
+                        "Manrope"
+                ]
+        },
+        "fontSize": {
+                "headline-xl-mobile": [
+                        "30px",
+                        {
+                                "lineHeight": "38px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-xl": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #e5bdb7; border-radius: 20px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-lg min-h-screen flex flex-col w-full md:max-w-md md:mx-auto md:shadow-xl md:border-x md:border-outline-variant relative">
+<!-- Top App Bar (Task-focused/Sub-page format) -->
+<header class="sticky top-0 w-full z-50 bg-surface border-b border-outline-variant flex justify-between items-center h-[48px] px-md">
+<button aria-label="Back" class="w-[48px] h-[48px] flex items-center justify-start text-on-surface-variant hover:text-primary transition-colors active:opacity-80 -ml-2">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface flex-1 text-center pr-[32px]">Tạo điểm trưng bày</h1>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex-1 overflow-y-auto pb-[100px]">
+<form class="flex flex-col gap-lg px-md py-lg">
+<!-- Section: Thông tin điểm -->
+<section class="flex flex-col gap-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Thông tin điểm</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md shadow-sm">
+<!-- Tên điểm -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="shop-name">Tên điểm <span class="text-error">*</span></label>
+<input class="h-[48px] rounded-xl border border-outline-variant bg-surface-container-lowest px-md font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow" id="shop-name" placeholder="Nhập tên cửa hàng/đại lý" required="" type="text"/>
+</div>
+<!-- NPP (Read-only) -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="npp-name">Nhà phân phối</label>
+<input class="h-[48px] rounded-xl border-none bg-surface-container text-on-surface-variant px-md font-body-lg text-body-lg cursor-not-allowed" id="npp-name" readonly="" type="text" value="NPP Minh Ngọc - Quận 1"/>
+</div>
+<!-- Số điện thoại -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="phone">Số điện thoại <span class="text-error">*</span></label>
+<input class="h-[48px] rounded-xl border border-outline-variant bg-surface-container-lowest px-md font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow" id="phone" placeholder="09xxxxxxx" required="" type="tel"/>
+<p class="font-label-sm text-label-sm uppercase text-outline flex items-center gap-base">
+<span class="material-symbols-outlined text-[14px]">info</span> Dùng để chống trùng
+                        </p>
+</div>
+<!-- Địa chỉ -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="address">Địa chỉ</label>
+<textarea class="rounded-xl border border-outline-variant bg-surface-container-lowest p-md font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow resize-none" id="address" placeholder="Số nhà, Tên đường, Phường/Xã..." rows="3"></textarea>
+</div>
+</div>
+</section>
+<!-- Section: Định vị -->
+<section class="flex flex-col gap-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Định vị</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm">
+<button class="w-full h-[48px] bg-surface-container-highest hover:bg-surface-container text-on-surface font-headline-md text-headline-md rounded-xl flex items-center justify-center gap-xs transition-colors active:scale-95 duration-200" type="button">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">my_location</span>
+                        Lấy vị trí GPS hiện tại
+                    </button>
+<!-- Captured Coordinates Chip (Simulated state) -->
+<div class="bg-primary-fixed bg-opacity-20 border border-primary-fixed rounded-lg px-sm py-xs flex items-center justify-between mt-xs">
+<div class="flex items-center gap-xs text-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-[18px]">pin_drop</span>
+<span class="font-body-sm text-body-sm font-semibold">10.762622, 106.660172</span>
+</div>
+<span class="font-label-sm text-label-sm uppercase text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Đã lưu
+                        </span>
+</div>
+</div>
+</section>
+<!-- Section: Ảnh cửa hàng -->
+<section class="flex flex-col gap-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Ảnh cửa hàng <span class="text-error">*</span></h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
+<button class="w-full h-[140px] border-2 border-dashed border-outline-variant rounded-xl bg-surface hover:bg-surface-container-low flex flex-col items-center justify-center gap-xs transition-colors group" type="button">
+<div class="w-[48px] h-[48px] rounded-full bg-surface-container-high group-hover:bg-primary-container group-hover:text-on-primary-container text-outline flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[24px]">photo_camera</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface font-medium">Chụp ảnh mặt tiền cửa hàng</span>
+</button>
+</div>
+</section>
+<!-- Section: Tài khoản nhận thưởng -->
+<section class="flex flex-col gap-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">Tài khoản nhận thưởng</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-md shadow-sm">
+<!-- Tên chủ TK -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="account-name">Tên chủ tài khoản</label>
+<input class="h-[48px] rounded-xl border border-outline-variant bg-surface-container-lowest px-md font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow uppercase" id="account-name" placeholder="NGUYEN VAN A" type="text"/>
+</div>
+<!-- Số tài khoản -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="account-number">Số tài khoản</label>
+<input class="h-[48px] rounded-xl border border-outline-variant bg-surface-container-lowest px-md font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow" id="account-number" placeholder="Nhập số tài khoản" type="number"/>
+</div>
+<!-- Ngân hàng -->
+<div class="flex flex-col gap-base">
+<label class="font-body-sm text-body-sm text-on-surface font-semibold" for="bank-name">Ngân hàng</label>
+<div class="relative">
+<select class="h-[48px] w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-lowest px-md pr-xl font-body-lg text-body-lg text-on-surface focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-shadow" id="bank-name">
+<option disabled="" selected="" value="">Chọn ngân hàng</option>
+<option value="vcb">Vietcombank</option>
+<option value="tcb">Techcombank</option>
+<option value="mbb">MB Bank</option>
+<option value="acb">ACB</option>
+</select>
+<span class="material-symbols-outlined absolute right-md top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+</div>
+</section>
+</form>
+</main>
+<!-- Sticky Bottom Action -->
+<div class="fixed bottom-0 left-0 w-full md:max-w-md md:left-1/2 md:-translate-x-1/2 bg-surface shadow-[0px_-4px_12px_rgba(0,0,0,0.05)] border-t border-surface-container-highest p-md z-50">
+<button class="w-full h-[48px] bg-primary text-on-primary flex items-center justify-center rounded-xl font-headline-md text-headline-md shadow-sm hover:bg-primary-container active:scale-[0.98] transition-all duration-200" type="submit">
+            Lưu điểm bán
+        </button>
+</div>
+</body></html>
