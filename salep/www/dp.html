@@ -1,0 +1,54 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Điểm Trưng Bày{% endblock %}
+
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head_include %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+{# Import map: remap shared modules → bản có ?v= (ES static import bỏ query khi resolve). #}
+{% set v = asset_version %}
+<script type="importmap">
+{
+  "imports": {
+    "/assets/salep/salep/lib/api.js":         "/assets/salep/salep/lib/api.js?v={{ v }}",
+    "/assets/salep/salep/lib/router.js":      "/assets/salep/salep/lib/router.js?v={{ v }}",
+    "/assets/salep/salep/lib/dom.js":         "/assets/salep/salep/lib/dom.js?v={{ v }}",
+    "/assets/salep/salep/lib/format.js":      "/assets/salep/salep/lib/format.js?v={{ v }}",
+    "/assets/salep/salep/lib/store.js":       "/assets/salep/salep/lib/store.js?v={{ v }}",
+    "/assets/salep/salep/components/nav.js":   "/assets/salep/salep/components/nav.js?v={{ v }}",
+    "/assets/salep/salep/components/toast.js": "/assets/salep/salep/components/toast.js?v={{ v }}"
+  }
+}
+</script>
+
+<link rel="stylesheet" href="/assets/salep/salep/shell.css?v={{ asset_version }}">
+
+<script>
+  window.DP_CONTEXT = {
+    user:        {{ dp_user | tojson }},
+    fullName:    {{ dp_full_name | tojson }},
+    staffId:     {{ dp_staff_id | tojson }},
+    distributor: {{ dp_distributor | tojson }},
+    isManager:   {{ dp_is_manager }},
+    isStaff:     {{ dp_is_staff }},
+    hasProfile:  {{ dp_has_profile }},
+    assetVersion: {{ asset_version | tojson }},
+    csrfToken:   {{ csrf_token | tojson }},
+    baseUrl:     "/assets/salep/salep"
+  };
+</script>
+{% endblock %}
+
+{% block page_content %}
+<div id="dp-app" class="dp-root">
+  <div class="dp-loading"><span class="material-symbols-outlined dp-spin">progress_activity</span></div>
+</div>
+<script type="module" src="/assets/salep/salep/shell.js?v={{ asset_version }}"></script>
+{% endblock %}
