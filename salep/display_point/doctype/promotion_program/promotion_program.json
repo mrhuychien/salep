@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "CT-.YYYY.-.###",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "program_name",
+  "status",
+  "col_break_dates",
+  "start_date",
+  "end_date",
+  "budget_section",
+  "budget",
+  "reward_per_point",
+  "target_points",
+  "desc_section",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "label": "Tên chương trình",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "default": "Nháp",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nĐang chạy\nKết thúc",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_break_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Bắt đầu",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Kết thúc",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "budget_section",
+   "fieldtype": "Section Break",
+   "label": "Ngân sách & thưởng"
+  },
+  {
+   "fieldname": "budget",
+   "fieldtype": "Currency",
+   "label": "Ngân sách"
+  },
+  {
+   "fieldname": "reward_per_point",
+   "fieldtype": "Currency",
+   "label": "Thưởng/điểm",
+   "description": "Dùng tính chi phí đã dùng = số điểm duyệt × thưởng/điểm"
+  },
+  {
+   "fieldname": "target_points",
+   "fieldtype": "Int",
+   "label": "Mục tiêu số điểm",
+   "description": "Cho dashboard tiến độ"
+  },
+  {
+   "fieldname": "desc_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Mô tả"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Promotion Program",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "search_fields": "program_name,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "program_name",
+ "track_changes": 1
+}

@@ -1,0 +1,136 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "DP-.YYYY.-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "point_name",
+  "distributor",
+  "phone",
+  "address_line",
+  "gps_section",
+  "latitude",
+  "longitude",
+  "gps_accuracy",
+  "store_photo",
+  "bank_section",
+  "bank_account_name",
+  "bank_account_no",
+  "bank_name",
+  "status_section",
+  "is_active"
+ ],
+ "fields": [
+  {
+   "fieldname": "point_name",
+   "fieldtype": "Data",
+   "label": "Tên điểm",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "distributor",
+   "fieldtype": "Link",
+   "label": "NPP",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Fetch từ profile NVBH (before_insert)"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "SĐT điểm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "description": "Khoá chống trùng (validate unique trong controller)"
+  },
+  {
+   "fieldname": "address_line",
+   "fieldtype": "Small Text",
+   "label": "Địa chỉ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gps_section",
+   "fieldtype": "Section Break",
+   "label": "GPS"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Vĩ độ",
+   "precision": "8"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Kinh độ",
+   "precision": "8"
+  },
+  {
+   "fieldname": "gps_accuracy",
+   "fieldtype": "Float",
+   "label": "Sai số GPS (m)",
+   "description": "Cảnh báo nếu > 100m"
+  },
+  {
+   "fieldname": "store_photo",
+   "fieldtype": "Attach Image",
+   "label": "Ảnh cửa hàng (chung)",
+   "reqd": 1,
+   "description": "Dùng lại qua các chương trình"
+  },
+  {
+   "fieldname": "bank_section",
+   "fieldtype": "Section Break",
+   "label": "TK chủ điểm nhận thưởng"
+  },
+  {
+   "fieldname": "bank_account_name",
+   "fieldtype": "Data",
+   "label": "Tên chủ TK"
+  },
+  {
+   "fieldname": "bank_account_no",
+   "fieldtype": "Data",
+   "label": "Số TK"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Ngân hàng"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Đang hoạt động"
+  }
+ ],
+ "image_field": "store_photo",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Display Point",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "search_fields": "point_name,phone,distributor",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "point_name",
+ "track_changes": 1
+}

@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "DPT-.YYYY.-.#####",
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "display_point",
+  "promotion_program",
+  "distributor",
+  "workflow_state",
+  "subject",
+  "display_section",
+  "display_photo",
+  "gps_section",
+  "latitude",
+  "longitude",
+  "gps_accuracy",
+  "approval_section",
+  "reject_reason",
+  "approved_by",
+  "approved_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "display_point",
+   "fieldtype": "Link",
+   "label": "Điểm bán",
+   "options": "Display Point",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Chọn điểm có sẵn hoặc tạo mới"
+  },
+  {
+   "fieldname": "promotion_program",
+   "fieldtype": "Link",
+   "label": "Chương trình",
+   "options": "Promotion Program",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fetch_from": "display_point.distributor",
+   "fieldname": "distributor",
+   "fieldtype": "Link",
+   "label": "NPP",
+   "options": "Customer",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "default": "Nháp",
+   "fieldname": "workflow_state",
+   "fieldtype": "Select",
+   "label": "Trạng thái duyệt",
+   "options": "Nháp\nChờ duyệt\nĐã duyệt\nTừ chối",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Tiêu đề",
+   "hidden": 1,
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "display_section",
+   "fieldtype": "Section Break",
+   "label": "Ảnh trưng bày đợt này"
+  },
+  {
+   "fieldname": "display_photo",
+   "fieldtype": "Attach Image",
+   "label": "Ảnh trưng bày (riêng)",
+   "reqd": 1,
+   "description": "Ảnh của đợt chương trình này"
+  },
+  {
+   "fieldname": "gps_section",
+   "fieldtype": "Section Break",
+   "label": "GPS lúc chấm"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Vĩ độ lúc chấm",
+   "precision": "8"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Kinh độ lúc chấm",
+   "precision": "8"
+  },
+  {
+   "fieldname": "gps_accuracy",
+   "fieldtype": "Float",
+   "label": "Sai số GPS"
+  },
+  {
+   "fieldname": "approval_section",
+   "fieldtype": "Section Break",
+   "label": "Duyệt"
+  },
+  {
+   "depends_on": "eval:doc.workflow_state=='Từ chối'",
+   "fieldname": "reject_reason",
+   "fieldtype": "Small Text",
+   "label": "Lý do từ chối"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Người duyệt",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Ngày duyệt",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "image_field": "display_photo",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Display Participation",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "search_fields": "display_point,promotion_program,workflow_state",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "subject",
+ "track_changes": 1
+}
