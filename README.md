@@ -33,7 +33,9 @@ www page `salep/www/dp.{py,html}`, asset `salep/public/salep/` → `/assets/sale
 Vanilla JS **no-build**, hash router, view code-split, **import map cache-bust**, CSS prefix `dp-`
 (design "Vibrant Professionalism" dịch sang CSS variables, không nạp Tailwind CDN).
 - Routes: `#/` (dashboard) · `#/points` (lượt tham gia + lọc trạng thái) · `#/points/new` (tạo điểm) ·
-  `#/programs` · `#/participations/new` (đăng ký + camera + GPS) · `#/participations/:name` (chi tiết + duyệt) · `#/profile`.
+  `#/programs` · `#/participations/new` (đăng ký + camera + GPS) · `#/participations/:name` (chi tiết + duyệt) ·
+  `#/participations/:name/edit` (chỉnh sửa ảnh/GPS, đổi điểm/CT khi chưa duyệt) · `#/profile`.
+- Sửa lượt theo Allow Edit doc/04 (NVBH: Nháp/Đã duyệt/Từ chối, KHÔNG ở Chờ duyệt); mọi sửa ghi `Version` và hiện ở timeline.
 - Camera: `<input capture="environment">` + `upload_file`; GPS: `navigator.geolocation`.
 - Quyền thật kiểm ở server (whitelisted methods); UI chỉ ẩn nút.
 - Đổi `lib/*` hay `components/*` → THÊM vào import map trong `dp.html`, nếu không sẽ kẹt bản cache cũ.
@@ -50,6 +52,5 @@ Sau cài: gán role **Sales Staff** cho User của NVBH (kèm tạo Sales Staff 
 role **Channel Manager** cho QL kênh.
 
 ## Còn lại (làm sau)
-- Màn "Chỉnh sửa" lượt tham gia (sửa ảnh/GPS sau khi gửi/duyệt) — hiện mới có Gửi duyệt / Duyệt / Từ chối.
 - Dashboard QL kênh (`channel_summary`) nhúng vào portal NPP, có Chart.js lazy + bản đồ GPS.
 - Print Format (module Display Point) — export khi có mẫu.

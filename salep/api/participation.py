@@ -5,7 +5,7 @@
 import frappe
 from frappe import _
 from frappe.model.workflow import apply_workflow
-from frappe.utils import now_datetime
+from frappe.utils import flt, now_datetime
 
 STATE_DRAFT = "Nháp"
 STATE_PENDING = "Chờ duyệt"
@@ -75,6 +75,45 @@ def _assert_channel_manager():
         frappe.throw(_("Chỉ Quản lý kênh được duyệt/từ chối lượt tham gia."), frappe.PermissionError)
 
 
+# Vai trò được sửa theo từng state — khớp Allow Edit Roles ở doc/04. Enforce
+# tường minh (không phụ thuộc nội bộ framework). System Manager là ngoại lệ.
+_ALLOW_EDIT = {
+    STATE_DRAFT: {"Sales Staff", "Channel Manager"},
+    STATE_PENDING: {"Channel Manager"},
+    STATE_APPROVED: {"Sales Staff", "Channel Manager"},
+    STATE_REJECTED: {"Sales Staff"},
+}
+
+
+def _assert_can_edit(doc):
+    roles = set(frappe.get_roles())
+    if "System Manager" in roles:
+        return
+    allowed = _ALLOW_EDIT.get(doc.workflow_state, set())
+    if not roles & allowed:
+        frappe.throw(
+            _("Không thể sửa lượt ở trạng thái '{0}'.").format(doc.workflow_state),
+            frappe.PermissionError,
+        )
+    # Sales Staff (không phải QL kênh) chỉ sửa lượt của chính mình (If Owner).
+    if "Channel Manager" not in roles and doc.owner != frappe.session.user:
+        frappe.throw(_("Bạn chỉ sửa được lượt của mình."), frappe.PermissionError)
+
+
+def _assert_owns_point(point):
+    """Điểm bán gán vào lượt phải tồn tại và thuộc người gọi (If Owner), trừ QL kênh.
+
+    Chặn việc bind lượt vào điểm/NPP của NVBH khác qua display_point (distributor
+    là fetch_from display_point.distributor).
+    """
+    owner = frappe.db.get_value("Display Point", point, "owner")
+    if not owner:
+        frappe.throw(_("Điểm bán không tồn tại."))
+    roles = set(frappe.get_roles())
+    if not roles & {"Channel Manager", "System Manager"} and owner != frappe.session.user:
+        frappe.throw(_("Bạn chỉ chọn được điểm bán của mình."), frappe.PermissionError)
+
+
 # ---------------------------------------------------------------------------
 # Whitelisted API
 # ---------------------------------------------------------------------------
@@ -88,6 +127,7 @@ def create_participation(
     gps_accuracy=None,
 ):
     """NVBH đăng ký lượt tham gia (trạng thái Nháp). `distributor` fetch_from điểm bán."""
+    _assert_owns_point(display_point)
     doc = frappe.new_doc("Display Participation")
     doc.update(
         {
@@ -133,3 +173,60 @@ def reject(name, reject_reason):
     doc.reject_reason = reject_reason
     apply_workflow(doc, "Từ chối")
     return {"name": doc.name, "workflow_state": doc.workflow_state}
+
+
+# Field luôn cho sửa (chụp lại ảnh / cập nhật GPS).
+_EDITABLE_ALWAYS = ("display_photo", "latitude", "longitude", "gps_accuracy")
+# Đổi điểm/chương trình chỉ khi lượt CHƯA duyệt (tránh phá unique sau khi đã duyệt).
+_EDITABLE_BEFORE_APPROVAL = ("display_point", "promotion_program")
+
+
+@frappe.whitelist()
+def update_participation(name, **kwargs):
+    """Sửa lượt tham gia (doc/01 US-03: sau duyệt vẫn sửa được, KHÔNG xoá).
+
+    Quyền theo state do _assert_can_edit canh (NVBH: Nháp/Đã duyệt/Từ chối —
+    KHÔNG sửa ở Chờ duyệt). Đổi điểm/chương trình chỉ khi chưa duyệt. doc.save()
+    chạy validate (unique cặp, subject) và ghi version (track_changes).
+    """
+    doc = frappe.get_doc("Display Participation", name)
+    doc.check_permission("write")
+    _assert_can_edit(doc)
+
+    gps_fields = {"latitude", "longitude", "gps_accuracy"}
+    changed = False
+    for field in _EDITABLE_ALWAYS:
+        if field not in kwargs:
+            continue
+        value = kwargs[field]
+        if field == "display_photo" and not value:
+            continue  # không cho xoá ảnh (reqd)
+        if value is None:
+            continue
+        if field in gps_fields:
+            # Arg HTTP về dạng string; field DB là Float → chuẩn hoá tránh dirty giả.
+            value = flt(value)
+            if flt(doc.get(field)) == value:
+                continue
+        elif doc.get(field) == value:
+            continue
+        doc.set(field, value)
+        changed = True
+
+    if any(kwargs.get(f) for f in _EDITABLE_BEFORE_APPROVAL):
+        if doc.workflow_state not in (STATE_DRAFT, STATE_REJECTED):
+            frappe.throw(_("Chỉ đổi điểm bán / chương trình khi lượt chưa duyệt."))
+        for field in _EDITABLE_BEFORE_APPROVAL:
+            value = kwargs.get(field)
+            if not value or doc.get(field) == value:
+                continue
+            if field == "display_point":
+                _assert_owns_point(value)  # chống bind sang điểm của NVBH khác
+            doc.set(field, value)
+            changed = True
+
+    if not changed:
+        return {"name": doc.name, "workflow_state": doc.workflow_state, "changed": False}
+
+    doc.save()
+    return {"name": doc.name, "workflow_state": doc.workflow_state, "changed": True}

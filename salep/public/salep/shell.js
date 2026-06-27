@@ -14,6 +14,7 @@ const VIEWS = {
   programs: () => import(withV("./views/programs.js")),
   participationNew: () => import(withV("./views/participation-new.js")),
   participationDetail: () => import(withV("./views/participation-detail.js")),
+  participationEdit: () => import(withV("./views/participation-edit.js")),
   profile: () => import(withV("./views/profile.js")),
 };
 
@@ -40,6 +41,7 @@ function defineRoutes() {
   route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs" });
   route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage" });
   route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage" });
+  route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage" });
   route("/profile", (p) => load("profile", p), { tab: "profile", chrome: "tabs" });
   setNotFound(() => navigate("/"));
 }

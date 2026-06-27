@@ -71,14 +71,28 @@ export async function render({ container, params }) {
           <div><strong>Lý do từ chối</strong><p>${esc(doc.reject_reason)}</p></div></div>`
       : "";
 
+  // Sửa được? (khớp Allow Edit doc/04; server vẫn enforce). NVBH KHÔNG sửa ở Chờ duyệt.
+  const canEdit = mgr
+    ? ["Nháp", "Chờ duyệt", "Đã duyệt"].includes(state)
+    : isOwner && ["Nháp", "Đã duyệt", "Từ chối"].includes(state);
+
   // Hành động theo role + state.
-  let actions = "";
+  const btns = [];
   if (mgr && state === "Chờ duyệt") {
-    actions = `<button class="dp-btn dp-btn--primary dp-btn--block" data-act="approve">${icon("check")} Duyệt</button>
-      <button class="dp-btn dp-btn--outline dp-btn--block" data-act="reject">${icon("close")} Từ chối</button>`;
+    btns.push(`<button class="dp-btn dp-btn--primary dp-btn--block" data-act="approve">${icon("check")} Duyệt</button>`);
+    btns.push(`<button class="dp-btn dp-btn--outline dp-btn--block" data-act="reject">${icon("close")} Từ chối</button>`);
   } else if (isOwner && (state === "Nháp" || state === "Từ chối")) {
-    actions = `<button class="dp-btn dp-btn--primary dp-btn--block" data-act="submit">${icon("send")} Gửi duyệt</button>`;
+    btns.push(`<button class="dp-btn dp-btn--primary dp-btn--block" data-act="submit">${icon("send")} Gửi duyệt</button>`);
   }
+  if (canEdit) {
+    const cls = btns.length ? "dp-btn--outline" : "dp-btn--primary";
+    btns.push(
+      `<button class="dp-btn ${cls} dp-btn--block" data-go="/participations/${encodeURIComponent(
+        name
+      )}/edit">${icon("edit")} Chỉnh sửa</button>`
+    );
+  }
+  const actions = btns.join("");
 
   container.innerHTML = html`
     ${subHeader("Chi tiết lượt tham gia")}
@@ -106,6 +120,10 @@ export async function render({ container, params }) {
   `;
 
   on(container, "click", "[data-back]", () => back());
+  on(container, "click", "[data-go]", (e, el) => {
+    e.preventDefault();
+    navigate(el.dataset.go);
+  });
 
   async function act(kind) {
     container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = true));

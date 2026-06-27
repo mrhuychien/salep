@@ -286,6 +286,7 @@ body.dp-subpage .dp-bottomnav { display: none; }
 .dp-avatar { width: 48px; height: 48px; border-radius: 999px; background: var(--dp-primary-container); color: var(--dp-on-primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
 .dp-avatar--lg { width: 96px; height: 96px; font-size: 40px; border: 2px solid var(--dp-primary); }
 .dp-note { display: flex; align-items: center; gap: 8px; background: var(--dp-secondary-fixed); color: var(--dp-on-secondary-fixed); padding: 12px; border-radius: var(--dp-r-lg); font-size: 14px; }
+.dp-editstate { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dp-on-surface-variant); }
 
 /* --- Empty / loading / toast --- */
 .dp-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 16px; color: var(--dp-on-surface-variant); text-align: center; }

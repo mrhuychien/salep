@@ -102,11 +102,23 @@ def get_participation(name):
         as_dict=True,
     ) if doc.promotion_program else None
 
-    # Mốc lịch sử rút từ field sẵn có (không phụ thuộc bảng Version).
+    # Mốc lịch sử: tạo + duyệt/từ chối, kèm các lần chỉnh sửa (US-03: ghi lịch sử).
     timeline = [{"label": _("Tạo bởi {0}").format(doc.owner), "on": doc.creation}]
     if doc.workflow_state == STATE_APPROVED and doc.approved_by:
         timeline.append({"label": _("Duyệt bởi {0}").format(doc.approved_by), "on": doc.approved_on})
     if doc.workflow_state == "Từ chối" and doc.reject_reason:
         timeline.append({"label": _("Từ chối"), "on": doc.modified, "note": doc.reject_reason})
 
+    # track_changes ghi mỗi lần sửa vào Version → hiện cho người dùng (get_all bỏ qua
+    # quyền trên Version; đã check_permission read lượt ở trên).
+    for v in frappe.get_all(
+        "Version",
+        filters={"ref_doctype": "Display Participation", "docname": name},
+        fields=["owner", "creation"],
+        order_by="creation asc",
+        limit_page_length=20,
+    ):
+        timeline.append({"label": _("Chỉnh sửa bởi {0}").format(v.owner), "on": v.creation})
+
+    timeline.sort(key=lambda e: str(e["on"]))
     return {"doc": data, "point": point, "program": program, "timeline": timeline}
