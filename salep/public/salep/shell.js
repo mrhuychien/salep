@@ -19,7 +19,11 @@ const VIEWS = {
 };
 
 async function load(key, props = {}) {
-  const container = viewEl();
+  // Thay #dp-view bằng node mới → bỏ mọi listener delegated của view trước
+  // (tránh chồng listener & double-fire khi điều hướng qua lại).
+  const old = viewEl();
+  const container = old.cloneNode(false);
+  old.parentNode.replaceChild(container, old);
   container.innerHTML =
     '<div class="dp-loading"><span class="material-symbols-outlined dp-spin">progress_activity</span></div>';
   try {

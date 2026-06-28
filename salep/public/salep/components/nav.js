@@ -50,6 +50,10 @@ export function renderChrome(root) {
       navigate(item.dataset.path);
     }
   });
+
+  // SPA xử lý form bằng JS — chặn mọi native submit (nút thiếu type, phím Enter)
+  // để không reload full page làm mất hash → văng về trang chủ.
+  root.addEventListener("submit", (e) => e.preventDefault());
 }
 
 export function setActiveTab(key) {
