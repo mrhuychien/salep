@@ -75,6 +75,43 @@ def list_my_participations(search=None, state=None):
     return rows
 
 
+def _attach_point_info(rows):
+    """Gộp tên/SĐT/ảnh điểm vào danh sách lượt (1 query, tránh N+1)."""
+    point_names = list({r.display_point for r in rows if r.display_point})
+    points = {}
+    if point_names:
+        for p in frappe.get_all(
+            "Display Point",
+            filters={"name": ("in", point_names)},
+            fields=["name", "point_name", "phone", "store_photo"],
+        ):
+            points[p.name] = p
+    for r in rows:
+        p = points.get(r.display_point) or {}
+        r["point_name"] = p.get("point_name")
+        r["point_phone"] = p.get("phone")
+        r["point_photo"] = p.get("store_photo")
+    return rows
+
+
+@frappe.whitelist()
+def list_program_participations(program):
+    """Danh sách điểm tham gia 1 chương trình. Theo quyền: Sales Staff thấy lượt
+    của mình (If Owner), Channel Manager thấy tất cả. Kèm thông tin chương trình."""
+    rows = frappe.get_list(
+        "Display Participation",
+        filters={"promotion_program": program},
+        fields=["name", "display_point", "distributor", "workflow_state", "display_photo", "modified"],
+        order_by="modified desc",
+        limit_page_length=500,
+    )
+    _attach_point_info(rows)
+    program_doc = frappe.db.get_value(
+        "Promotion Program", program, ["program_name", "status", "start_date", "end_date"], as_dict=True
+    )
+    return {"program": program_doc, "participations": rows}
+
+
 @frappe.whitelist()
 def get_point(name):
     """Một điểm bán (cho preview khi đăng ký). Enforce quyền read."""

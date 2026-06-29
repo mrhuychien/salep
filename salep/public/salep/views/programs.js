@@ -5,7 +5,9 @@ import { navigate } from "../lib/router.js";
 import { toastError } from "../components/toast.js";
 
 function card(p) {
-  return `<div class="dp-card dp-card--program" data-go="/participations/new?program=${encodeURIComponent(p.name)}">
+  const prog = encodeURIComponent(p.name);
+  // Thẻ → danh sách điểm tham gia; nút bên trong (data-go gần hơn) → form đăng ký.
+  return `<div class="dp-card dp-card--program" data-go="/programs/${prog}">
     <div class="dp-card__accent"></div>
     <div class="dp-card__row">
       <h3 class="dp-card__title">${esc(p.program_name)}</h3>
@@ -18,7 +20,10 @@ function card(p) {
       ${p.target_points ? `<span>${icon("flag", "dp-i14")} Mục tiêu ${esc(p.target_points)} điểm</span>` : ""}
       ${p.reward_per_point ? `<span>${icon("payments", "dp-i14")} ${esc(formatVND(p.reward_per_point))}/điểm</span>` : ""}
     </div>
-    <div class="dp-card__cta">${icon("add_circle", "dp-i18")} Đăng ký điểm tham gia</div>
+    <button class="dp-btn dp-btn--outline dp-btn--block dp-mt" data-go="/participations/new?program=${prog}">${icon(
+      "add_circle",
+      "dp-i18"
+    )} Đăng ký điểm tham gia</button>
   </div>`;
 }
 

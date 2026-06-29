@@ -12,6 +12,7 @@ const VIEWS = {
   points: () => import(withV("./views/points.js")),
   pointNew: () => import(withV("./views/point-new.js")),
   programs: () => import(withV("./views/programs.js")),
+  programDetail: () => import(withV("./views/program-detail.js")),
   participationNew: () => import(withV("./views/participation-new.js")),
   participationDetail: () => import(withV("./views/participation-detail.js")),
   participationEdit: () => import(withV("./views/participation-edit.js")),
@@ -43,6 +44,7 @@ function defineRoutes() {
   route("/points", (p) => load("points", p), { tab: "points", chrome: "tabs" });
   route("/points/new", (p) => load("pointNew", p), { tab: "points", chrome: "subpage" });
   route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs" });
+  route("/programs/:name", (p) => load("programDetail", p), { tab: "programs", chrome: "subpage" });
   route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage" });
   route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage" });
   route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage" });
