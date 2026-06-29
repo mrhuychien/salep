@@ -25,7 +25,7 @@ DOC_STATES = [
 
 # (from, action, to, allowed_role, condition) — doc/04 Transitions
 TRANSITIONS = [
-    ("Nháp", "Gửi duyệt", "Chờ duyệt", "Sales Staff", "doc.display_photo and doc.latitude and doc.longitude"),
+    ("Nháp", "Gửi duyệt", "Chờ duyệt", "Sales Staff", "doc.display_photo"),
     ("Chờ duyệt", "Duyệt", "Đã duyệt", "Channel Manager", ""),
     ("Chờ duyệt", "Từ chối", "Từ chối", "Channel Manager", "doc.reject_reason"),
     ("Từ chối", "Gửi lại", "Chờ duyệt", "Sales Staff", ""),

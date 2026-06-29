@@ -39,7 +39,28 @@ PERMISSIONS = {
 def after_install():
     _create_roles()
     _grant_permissions()
+    _setup_workflow()
+    _add_indexes()
     frappe.clear_cache()
+
+
+def _setup_workflow():
+    # bench install-app KHÔNG chạy patches → tạo workflow ngay ở đây (idempotent).
+    try:
+        from salep.patches.v0_0_1 import setup_workflow
+
+        setup_workflow.execute()
+    except Exception:
+        frappe.log_error(title="salep: cài workflow thất bại")
+
+
+def _add_indexes():
+    try:
+        from salep.patches.v0_0_1 import add_db_indexes
+
+        add_db_indexes.execute()
+    except Exception:
+        frappe.log_error(title="salep: tạo index thất bại")
 
 
 def _create_roles():
