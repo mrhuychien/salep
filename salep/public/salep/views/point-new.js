@@ -89,8 +89,6 @@ export async function render({ container, query }) {
   const fileInput = container.querySelector("[data-file]");
   const uploader = container.querySelector("[data-shot]");
 
-  on(container, "click", "[data-back]", () => back());
-
   container.querySelector("[data-gps]").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;

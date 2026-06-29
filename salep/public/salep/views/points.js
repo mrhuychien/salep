@@ -65,10 +65,6 @@ export async function render({ container, query }) {
     }
   }
 
-  on(container, "click", "[data-go]", (e, el) => {
-    e.preventDefault();
-    navigate(el.dataset.go);
-  });
   on(container, "click", "[data-filter]", (e, el) => {
     state = el.dataset.filter === "Tất cả" ? "" : el.dataset.filter;
     container.querySelectorAll("[data-filter]").forEach((c) => c.classList.toggle("is-active", c === el));

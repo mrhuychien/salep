@@ -87,8 +87,4 @@ export async function render({ container }) {
     </div>
   `;
 
-  on(container, "click", "[data-go]", (e, el) => {
-    e.preventDefault();
-    navigate(el.dataset.go);
-  });
 }

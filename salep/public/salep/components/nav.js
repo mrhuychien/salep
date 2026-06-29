@@ -2,7 +2,7 @@
 import { html, icon } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { ctx } from "../lib/store.js";
-import { navigate } from "../lib/router.js";
+import { navigate, back } from "../lib/router.js";
 
 const TABS = [
   { key: "home", label: "Trang chủ", icon: "home", path: "/" },
@@ -43,11 +43,19 @@ export function renderChrome(root) {
     </nav>
   `;
 
+  // Điều hướng toàn cục: tab (data-path), link trong view (data-go), nút back
+  // (data-back). Để ở root → mọi điều hướng chạy đồng nhất, không phụ thuộc view.
   root.addEventListener("click", (e) => {
-    const item = e.target.closest("[data-path]");
+    const goBack = e.target.closest("[data-back]");
+    if (goBack) {
+      e.preventDefault();
+      back();
+      return;
+    }
+    const item = e.target.closest("[data-path], [data-go]");
     if (item) {
       e.preventDefault();
-      navigate(item.dataset.path);
+      navigate(item.dataset.path || item.dataset.go);
     }
   });
 

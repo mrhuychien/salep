@@ -77,7 +77,6 @@ export async function render({ container, query }) {
   const pointSel = container.querySelector("#dp-point");
   const programSel = container.querySelector("#dp-program");
 
-  on(container, "click", "[data-back]", () => back());
   container.querySelector("[data-newpoint]").addEventListener("click", () =>
     navigate("/points/new?next=participation")
   );

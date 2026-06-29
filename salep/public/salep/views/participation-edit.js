@@ -17,7 +17,6 @@ export async function render({ container, params }) {
     ]);
   } catch (e) {
     container.innerHTML = subHeader("Chỉnh sửa") + emptyState("Không tải được lượt tham gia", "error", e.message);
-    on(container, "click", "[data-back]", () => back());
     return;
   }
 
@@ -96,7 +95,7 @@ export async function render({ container, params }) {
 
     <div class="dp-actionbar dp-actionbar--stack">
       <button class="dp-btn dp-btn--primary dp-btn--block" data-save>Lưu thay đổi</button>
-      <button class="dp-btn dp-btn--outline dp-btn--block" data-cancel>Huỷ</button>
+      <button class="dp-btn dp-btn--outline dp-btn--block" data-go="/participations/${encodeURIComponent(name)}">Huỷ</button>
     </div>
   `;
 
@@ -106,8 +105,6 @@ export async function render({ container, params }) {
   const pointSel = container.querySelector("#dp-point");
   const programSel = container.querySelector("#dp-program");
 
-  on(container, "click", "[data-back]", () => back());
-  on(container, "click", "[data-cancel]", () => navigate(`/participations/${encodeURIComponent(name)}`));
 
   container.querySelector("[data-gps]").addEventListener("click", async () => {
     try {

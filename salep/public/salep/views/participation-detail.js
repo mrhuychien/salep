@@ -54,7 +54,6 @@ export async function render({ container, params }) {
     data = await call("salep.api.portal.get_participation", { name });
   } catch (e) {
     container.innerHTML = subHeader("Chi tiết") + emptyState("Không tải được lượt tham gia", "error", e.message);
-    on(container, "click", "[data-back]", () => back());
     return;
   }
 
@@ -118,12 +117,6 @@ export async function render({ container, params }) {
     </main>
     ${actions ? `<div class="dp-actionbar dp-actionbar--stack">${actions}</div>` : ""}
   `;
-
-  on(container, "click", "[data-back]", () => back());
-  on(container, "click", "[data-go]", (e, el) => {
-    e.preventDefault();
-    navigate(el.dataset.go);
-  });
 
   async function act(kind) {
     container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = true));
