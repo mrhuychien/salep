@@ -26,7 +26,7 @@ export function renderChrome(root) {
       <nav class="dp-drawer__nav">
         ${TABS.map(
           (t) =>
-            `<a class="dp-drawer__item" data-tab="${t.key}" data-path="${t.path}">${icon(t.icon)}<span>${esc(t.label)}</span></a>`
+            `<a class="dp-drawer__item" data-tab="${t.key}" data-go="${t.path}">${icon(t.icon)}<span>${esc(t.label)}</span></a>`
         )}
       </nav>
     </aside>
@@ -36,15 +36,16 @@ export function renderChrome(root) {
     <nav class="dp-bottomnav">
       ${TABS.map(
         (t) =>
-          `<button class="dp-bottomnav__item" data-tab="${t.key}" data-path="${t.path}">${icon(
+          `<button class="dp-bottomnav__item" data-tab="${t.key}" data-go="${t.path}">${icon(
             t.icon
           )}<span class="dp-bottomnav__label">${esc(t.label)}</span></button>`
       )}
     </nav>
   `;
 
-  // Điều hướng toàn cục: tab (data-path), link trong view (data-go), nút back
-  // (data-back). Để ở root → mọi điều hướng chạy đồng nhất, không phụ thuộc view.
+  // Điều hướng toàn cục qua data-go / data-back. KHÔNG dùng [data-path] vì
+  // Frappe gắn data-path="<route>" lên wrapper trang web → mọi click trồi lên
+  // sẽ trúng nó và điều hướng sai. data-go/data-back là thuộc tính riêng của ta.
   root.addEventListener("click", (e) => {
     // Chạm vào field nhập liệu thì KHÔNG bao giờ coi là điều hướng.
     if (e.target.closest("input, textarea, select, label")) return;
@@ -54,10 +55,10 @@ export function renderChrome(root) {
       back();
       return;
     }
-    const item = e.target.closest("[data-path], [data-go]");
+    const item = e.target.closest("[data-go]");
     if (item) {
       e.preventDefault();
-      navigate(item.dataset.path || item.dataset.go);
+      navigate(item.dataset.go);
     }
   });
 
