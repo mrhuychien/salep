@@ -46,6 +46,8 @@ export function renderChrome(root) {
   // Điều hướng toàn cục: tab (data-path), link trong view (data-go), nút back
   // (data-back). Để ở root → mọi điều hướng chạy đồng nhất, không phụ thuộc view.
   root.addEventListener("click", (e) => {
+    // Chạm vào field nhập liệu thì KHÔNG bao giờ coi là điều hướng.
+    if (e.target.closest("input, textarea, select, label")) return;
     const goBack = e.target.closest("[data-back]");
     if (goBack) {
       e.preventDefault();

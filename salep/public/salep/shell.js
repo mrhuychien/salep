@@ -2,7 +2,7 @@
 import { ctx } from "./lib/store.js";
 import { route, setNotFound, onChange, start, navigate } from "./lib/router.js";
 import { renderChrome, setActiveTab, setChrome, viewEl } from "./components/nav.js";
-import { toastError } from "./components/toast.js";
+import { toast, toastError } from "./components/toast.js";
 
 // Cache-bust view động: mỗi full load đổi ?v= → không kẹt bản cũ.
 const withV = (p) => `${p}?v=${ctx.assetVersion}`;
@@ -50,8 +50,25 @@ function defineRoutes() {
   setNotFound(() => navigate("/"));
 }
 
+// === TEMP DEBUG — gỡ sau khi tìm ra nguyên nhân "chạm input → về home" ===
+function installDebug() {
+  document.addEventListener(
+    "click",
+    (e) => {
+      const t = e.target;
+      const nav = t.closest && t.closest("[data-path],[data-go],[data-back]");
+      const navInfo = nav ? nav.dataset.path || nav.dataset.go || "back" : "—";
+      const cls = String(t.className || "").split(" ")[0] || "";
+      toast(`tap ${t.tagName}.${cls} | nav=${navInfo}`, "info", 2800);
+    },
+    true
+  );
+  window.addEventListener("hashchange", () => toast(`hash→ ${location.hash || "(trống)"}`, "info", 2800));
+}
+
 function main() {
   const root = document.getElementById("dp-app");
+  installDebug();
   renderChrome(root);
   onChange(({ meta }) => {
     setActiveTab(meta.tab || "home");
