@@ -346,6 +346,18 @@ body.dp-subpage .dp-actionbar { bottom: 0; }
 .dp-reason-bar p { margin: 2px 0 0; }
 .dp-detail-photo img { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--dp-radius-md); margin-bottom: 1rem; }
 
+/* ── Visit gallery (ảnh báo cáo tháng) ── */
+.dp-visit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
+.dp-visit-cell { position: relative; border-radius: var(--dp-radius-sm); overflow: hidden; aspect-ratio: 1; background: var(--dp-surface-2); }
+.dp-visit-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-visit-meta { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 0.65rem; font-weight: 600; text-align: center; padding: 2px; }
+
+/* ── Alert link (cần ghé thăm) ── */
+.dp-alert-link { display: flex; align-items: center; gap: 0.6rem; background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+  border-radius: var(--dp-radius-md); padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; text-decoration: none; }
+.dp-alert-link b { font-weight: 700; }
+.dp-alert-link .dp-chev { margin-left: auto; }
+
 /* ── Profile ── */
 .dp-profile-head { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 1rem; }
 .dp-avatar { width: 88px; height: 88px; border-radius: 50%; background: var(--dp-season-grad); color: #fff;

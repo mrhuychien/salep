@@ -1,0 +1,67 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "visit_photo",
+  "captured_on",
+  "period",
+  "latitude",
+  "longitude",
+  "gps_accuracy"
+ ],
+ "fields": [
+  {
+   "fieldname": "visit_photo",
+   "fieldtype": "Attach Image",
+   "label": "Ảnh báo cáo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "captured_on",
+   "fieldtype": "Datetime",
+   "label": "Thời điểm chụp",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Data",
+   "label": "Kỳ (YYYY-MM)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Vĩ độ",
+   "precision": "8"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Kinh độ",
+   "precision": "8"
+  },
+  {
+   "fieldname": "gps_accuracy",
+   "fieldtype": "Float",
+   "label": "Sai số GPS"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-01-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Display Visit",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

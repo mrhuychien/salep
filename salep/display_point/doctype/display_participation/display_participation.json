@@ -21,7 +21,9 @@
   "approval_section",
   "reject_reason",
   "approved_by",
-  "approved_on"
+  "approved_on",
+  "visits_section",
+  "visits"
  ],
  "fields": [
   {
@@ -130,6 +132,17 @@
    "label": "Ngày duyệt",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "visits_section",
+   "fieldtype": "Section Break",
+   "label": "Báo cáo hàng tháng"
+  },
+  {
+   "fieldname": "visits",
+   "fieldtype": "Table",
+   "label": "Ảnh báo cáo theo tháng",
+   "options": "Display Visit"
   }
  ],
  "image_field": "display_photo",

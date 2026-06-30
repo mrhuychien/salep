@@ -47,8 +47,42 @@ export async function call(method, args = {}) {
   return data.message;
 }
 
+// Resize + nén ảnh phía client trước khi upload (tiết kiệm dung lượng/băng thông).
+// Ảnh > maxDim sẽ thu nhỏ; mọi ảnh tái mã hoá JPEG quality ~0.8. Lỗi → giữ file gốc.
+async function resizeImage(file, maxDim = 1280, quality = 0.8) {
+  if (!file || !file.type || !file.type.startsWith("image/")) return file;
+  try {
+    const dataUrl = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
+    if (!blob || blob.size >= file.size) return file; // không nhỏ hơn thì giữ gốc
+    const base = (file.name || "photo").replace(/\.[^.]+$/, "");
+    return new File([blob], base + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 // Upload ảnh (chụp từ camera). Trả {file_url, ...}. is_private=0 để portal hiển thị.
 export async function uploadFile(file, { doctype, docname, fieldname } = {}) {
+  file = await resizeImage(file);
   const fd = new FormData();
   fd.append("file", file, file.name || "photo.jpg");
   fd.append("is_private", "0");

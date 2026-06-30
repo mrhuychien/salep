@@ -34,6 +34,7 @@ function progCard(p, mine) {
 export async function render({ container }) {
   let summary = { by_state: [], by_program: [], total_points: 0 };
   let programs = [];
+  let toVisit = [];
   try {
     [summary, programs] = await Promise.all([
       call("salep.api.dashboard.staff_summary"),
@@ -41,6 +42,11 @@ export async function render({ container }) {
     ]);
   } catch (e) {
     toastError(e.message);
+  }
+  try {
+    toVisit = await call("salep.api.portal.list_points_to_visit");
+  } catch {
+    /* không chặn dashboard nếu lỗi */
   }
 
   const sc = (s) => (summary.by_state.find((x) => x.state === s) || {}).cnt || 0;
@@ -61,6 +67,14 @@ export async function render({ container }) {
       ${kpi("Chờ duyệt", sc("Chờ duyệt"), "warning")}
       ${kpi("Đã duyệt", sc("Đã duyệt"), "success")}
     </div>
+
+    ${
+      toVisit.length
+        ? `<a class="dp-alert-link" data-go="/visits">${icon("triangle-exclamation")} <b>${
+            toVisit.length
+          } điểm cần ghé thăm</b> — chưa đủ ảnh báo cáo ${icon("chevron-right", "dp-chev")}</a>`
+        : ""
+    }
 
     <button class="dp-btn-primary" data-go="/points/new">${icon("plus")} Tạo điểm trưng bày</button>
 

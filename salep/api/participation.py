@@ -126,7 +126,10 @@ def create_participation(
     longitude=None,
     gps_accuracy=None,
 ):
-    """NVBH đăng ký lượt tham gia (trạng thái Nháp). `distributor` fetch_from điểm bán."""
+    """NVBH đăng ký lượt tham gia (trạng thái Nháp). `distributor` fetch_from điểm bán.
+
+    Ảnh đăng ký = ảnh báo cáo tháng đầu (visit #1) để tính độ phủ theo tháng.
+    """
     _assert_owns_point(display_point)
     doc = frappe.new_doc("Display Participation")
     doc.update(
@@ -140,8 +143,44 @@ def create_participation(
             "workflow_state": STATE_DRAFT,
         }
     )
+    now = now_datetime()
+    doc.append(
+        "visits",
+        {
+            "visit_photo": display_photo,
+            "captured_on": now,
+            "period": now.strftime("%Y-%m"),
+            "latitude": flt(latitude) or None,
+            "longitude": flt(longitude) or None,
+            "gps_accuracy": flt(gps_accuracy) or None,
+        },
+    )
     doc.insert()  # enforce Create + If Owner
     return {"name": doc.name, "workflow_state": doc.workflow_state}
+
+
+@frappe.whitelist()
+def add_visit(participation, display_photo, latitude=None, longitude=None, gps_accuracy=None):
+    """Thêm ảnh báo cáo trưng bày của tháng hiện tại (GPS + thời gian tự động)."""
+    if not display_photo:
+        frappe.throw(_("Cần ảnh báo cáo."))
+    doc = frappe.get_doc("Display Participation", participation)
+    doc.check_permission("write")
+    _assert_can_edit(doc)
+    now = now_datetime()
+    doc.append(
+        "visits",
+        {
+            "visit_photo": display_photo,
+            "captured_on": now,
+            "period": now.strftime("%Y-%m"),
+            "latitude": flt(latitude) or None,
+            "longitude": flt(longitude) or None,
+            "gps_accuracy": flt(gps_accuracy) or None,
+        },
+    )
+    doc.save()
+    return {"name": doc.name, "visits": len(doc.visits)}
 
 
 @frappe.whitelist()

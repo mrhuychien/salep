@@ -8,8 +8,32 @@ Chỉ đọc + tổng hợp nhẹ cho màn hình. Ghi dữ liệu dùng api.poin
 
 import frappe
 from frappe import _
+from frappe.utils import getdate, now_datetime
 
 STATE_APPROVED = "Đã duyệt"
+
+
+def _month_bucket(d):
+    """Số thứ tự tháng tuyệt đối để so sánh: year*12 + (month-1)."""
+    d = getdate(d)
+    return d.year * 12 + (d.month - 1)
+
+
+def coverage(start, end, captured_list, now=None):
+    """Độ phủ ảnh theo tháng của 1 lượt trong 1 chương trình.
+
+    Chương trình [start, end): số tháng cần = số tháng đã trôi từ start tới now
+    (cap theo tổng số tháng). VD 1/7→1/12 (5 tháng); ngày 2/8 cần 2 ảnh.
+    """
+    if not start or not end:
+        return {"required": 0, "have": 0, "needs": False, "total": 0}
+    now = now or now_datetime()
+    sb, eb, nb = _month_bucket(start), _month_bucket(end), _month_bucket(now)
+    total = max(0, eb - sb)
+    required = max(0, min(nb - sb + 1, total))
+    have_buckets = {_month_bucket(c) for c in captured_list if c}
+    have = len([b for b in have_buckets if sb <= b < eb])
+    return {"required": required, "have": have, "needs": have < required, "total": total, "ended": nb >= eb}
 
 
 @frappe.whitelist()
@@ -158,4 +182,99 @@ def get_participation(name):
         timeline.append({"label": _("Chỉnh sửa bởi {0}").format(v.owner), "on": v.creation})
 
     timeline.sort(key=lambda e: str(e["on"]))
-    return {"doc": data, "point": point, "program": program, "timeline": timeline}
+
+    # Ảnh báo cáo theo tháng + độ phủ.
+    visits = sorted(
+        [
+            {
+                "visit_photo": v.visit_photo,
+                "captured_on": v.captured_on,
+                "period": v.period,
+                "latitude": v.latitude,
+                "longitude": v.longitude,
+            }
+            for v in (doc.visits or [])
+        ],
+        key=lambda v: str(v["captured_on"] or ""),
+    )
+    cov = coverage(
+        program and program.start_date,
+        program and program.end_date,
+        [v["captured_on"] for v in visits],
+    ) if program else {"required": 0, "have": 0, "needs": False, "total": 0}
+
+    return {
+        "doc": data,
+        "point": point,
+        "program": program,
+        "timeline": timeline,
+        "visits": visits,
+        "coverage": cov,
+    }
+
+
+@frappe.whitelist()
+def list_points_to_visit():
+    """Điểm cần ghé thăm: lượt ĐÃ DUYỆT của NVBH mà số ảnh báo cáo chưa đủ theo
+    tháng (chương trình còn hạn). Yêu cầu #3 — nhắc nhở chăm sóc điểm bán."""
+    user = frappe.session.user
+    parts = frappe.get_list(
+        "Display Participation",
+        filters={"owner": user, "workflow_state": STATE_APPROVED},
+        fields=["name", "display_point", "promotion_program", "distributor"],
+        limit_page_length=500,
+    )
+    if not parts:
+        return []
+
+    prog_ids = list({p.promotion_program for p in parts if p.promotion_program})
+    progs = {}
+    if prog_ids:
+        for pr in frappe.get_all(
+            "Promotion Program",
+            filters={"name": ("in", prog_ids)},
+            fields=["name", "program_name", "start_date", "end_date"],
+        ):
+            progs[pr.name] = pr
+
+    part_ids = [p.name for p in parts]
+    visits_by_part = {}
+    for v in frappe.get_all(
+        "Display Visit", filters={"parent": ("in", part_ids)}, fields=["parent", "captured_on"]
+    ):
+        visits_by_part.setdefault(v.parent, []).append(v.captured_on)
+
+    now = now_datetime()
+    out = []
+    for p in parts:
+        pr = progs.get(p.promotion_program)
+        if not pr:
+            continue
+        cov = coverage(pr.start_date, pr.end_date, visits_by_part.get(p.name, []), now)
+        if cov["needs"] and not cov["ended"]:
+            out.append(
+                {
+                    "participation": p.name,
+                    "display_point": p.display_point,
+                    "distributor": p.distributor,
+                    "program": p.promotion_program,
+                    "program_name": pr.program_name,
+                    "have": cov["have"],
+                    "required": cov["required"],
+                    "missing": cov["required"] - cov["have"],
+                }
+            )
+
+    point_names = list({o["display_point"] for o in out if o["display_point"]})
+    points = {}
+    if point_names:
+        for pt in frappe.get_all(
+            "Display Point", filters={"name": ("in", point_names)}, fields=["name", "point_name", "phone"]
+        ):
+            points[pt.name] = pt
+    for o in out:
+        pt = points.get(o["display_point"]) or {}
+        o["point_name"] = pt.get("point_name")
+        o["point_phone"] = pt.get("phone")
+    out.sort(key=lambda o: -o["missing"])
+    return out

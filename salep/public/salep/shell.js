@@ -18,6 +18,7 @@ const VIEWS = {
   participationDetail: () => import(withV("./views/participation-detail.js")),
   participationEdit: () => import(withV("./views/participation-edit.js")),
   profile: () => import(withV("./views/profile.js")),
+  visits: () => import(withV("./views/visits.js")),
 };
 
 async function load(key, props = {}) {
@@ -47,6 +48,7 @@ function defineRoutes() {
   route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage", title: "Đăng ký" });
   route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage", title: "Lượt tham gia" });
   route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage", title: "Chỉnh sửa" });
+  route("/visits", (p) => load("visits", p), { tab: "home", chrome: "subpage", title: "Cần ghé thăm" });
   route("/profile", (p) => load("profile", p), { tab: "profile", chrome: "tabs", title: "Hồ sơ" });
   setNotFound(() => navigate("/"));
 }
