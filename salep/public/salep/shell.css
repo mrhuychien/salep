@@ -471,6 +471,31 @@ a.dp-kpi-card:active { transform: scale(0.97); }
 .dp-season-opt.is-active { border-color: var(--dp-season-1); box-shadow: 0 0 0 3px var(--dp-season-glow); }
 .dp-season-opt span { font-size: 1.8rem; }
 
+/* ── Hướng dẫn sử dụng (slideshow) ── */
+.dp-guide { position: fixed; inset: 0; z-index: 10002; background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: flex-end; justify-content: center; padding: 1rem; }
+.dp-guide-card { position: relative; background: var(--dp-surface); border-radius: var(--dp-radius-xl);
+  width: 100%; max-width: 440px; padding: 1.5rem 1.25rem 1.25rem; box-shadow: var(--dp-shadow-lg);
+  animation: dpModalUp 0.28s ease; }
+.dp-guide-close { position: absolute; top: 0.75rem; right: 0.75rem; width: 34px; height: 34px; border: none;
+  border-radius: 50%; background: var(--dp-surface-2); color: var(--dp-text-2); cursor: pointer; font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center; }
+.dp-guide-close:active { transform: scale(0.94); }
+.dp-guide-viewport { overflow: hidden; }
+.dp-guide-track { display: flex; transition: transform 0.3s ease; }
+.dp-guide-slide { flex: 0 0 100%; box-sizing: border-box; text-align: center; padding: 1rem 0.5rem 0.5rem; }
+.dp-guide-emoji { font-size: 3.4rem; line-height: 1;
+  filter: drop-shadow(0 6px 14px var(--dp-season-glow)); margin-bottom: 0.85rem; }
+.dp-guide-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+.dp-guide-body { font-size: 0.9rem; color: var(--dp-text-2); margin: 0; line-height: 1.55; min-height: 4.5em; }
+.dp-guide-dots { display: flex; justify-content: center; gap: 6px; margin: 0.85rem 0; }
+.dp-guide-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dp-border); transition: all 0.2s ease; }
+.dp-guide-dot.is-active { width: 20px; border-radius: 4px; background: var(--dp-season-grad); }
+.dp-guide-actions { display: flex; gap: 0.6rem; }
+.dp-guide-actions > * { flex: 1; }
+@media (min-width: 768px) { .dp-guide { align-items: center; } }
+
 /* ── Utility ── */
 .dp-flex { display: flex; } .dp-items-center { align-items: center; } .dp-justify-between { justify-content: space-between; }
 .dp-gap-2 { gap: 0.5rem; } .dp-text-muted { color: var(--dp-text-2); } .dp-text-sm { font-size: 0.85rem; }

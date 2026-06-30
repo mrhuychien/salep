@@ -2,6 +2,7 @@
 import { esc } from "../lib/format.js";
 import { ctx } from "../lib/store.js";
 import { navigate, back } from "../lib/router.js";
+import { openGuide, maybeShowFirstRun } from "./guide.js";
 
 const TABS = [
   { key: "home", label: "Trang chủ", icon: "house", path: "/" },
@@ -50,6 +51,7 @@ export function renderChrome(root) {
         <button class="dp-icon-btn" data-back hidden aria-label="Quay lại"><i class="fas fa-arrow-left"></i></button>
         <h1 class="dp-header-title" id="dp-header-title">Điểm Trưng Bày</h1>
         <div class="dp-header-actions">
+          <button class="dp-icon-btn" data-help aria-label="Hướng dẫn"><i class="fas fa-circle-question"></i></button>
           <button class="dp-icon-btn" data-refresh aria-label="Làm mới"><i class="fas fa-rotate-right"></i></button>
           <button class="dp-icon-btn" data-season aria-label="Đổi mùa"><span class="dp-season-icon" id="dp-season-emoji">🌸</span></button>
           <button class="dp-icon-btn" data-acct aria-label="Tài khoản"><i class="fas fa-circle-user"></i></button>
@@ -86,6 +88,8 @@ export function renderChrome(root) {
   root.addEventListener("click", onClick);
   // SPA xử lý form bằng JS — chặn mọi native submit (tránh reload mất hash).
   root.addEventListener("submit", (e) => e.preventDefault());
+  // Lần đăng nhập đầu → mở hướng dẫn trực quan.
+  maybeShowFirstRun();
 }
 
 function onClick(e) {
@@ -104,6 +108,11 @@ function onClick(e) {
   if (t.closest("[data-back]")) {
     e.preventDefault();
     back();
+    return;
+  }
+  if (t.closest("[data-help]")) {
+    e.preventDefault();
+    openGuide();
     return;
   }
   if (t.closest("[data-refresh]")) {
