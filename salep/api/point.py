@@ -136,7 +136,10 @@ def list_my_points(search=None, limit=20):
         "Display Point",
         filters=filters,
         or_filters=or_filters,
-        fields=["name", "point_name", "phone", "distributor", "address_line", "store_photo"],
+        fields=[
+            "name", "point_name", "phone", "distributor", "address_line",
+            "store_photo", "latitude", "longitude",
+        ],
         order_by="modified desc",
         limit_page_length=frappe.utils.cint(limit) or 20,
     )

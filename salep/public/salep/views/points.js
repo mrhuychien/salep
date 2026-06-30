@@ -1,6 +1,7 @@
-import { html, icon, emptyState, skeleton } from "../lib/dom.js";
+import { html, icon, emptyState } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { call } from "../lib/api.js";
+import { renderMap } from "../lib/map.js";
 import { toastError } from "../components/toast.js";
 
 function row(p) {
@@ -19,9 +20,15 @@ function row(p) {
 }
 
 export async function render({ container }) {
-  let search = "";
+  let all = [];
+  try {
+    all = await call("salep.api.point.list_my_points", { limit: 500 });
+  } catch (e) {
+    toastError(e.message);
+  }
 
   container.innerHTML = html`
+    <div class="dp-map" id="dp-map"></div>
     <div class="dp-search-wrap">
       ${icon("magnifying-glass")}
       <input class="dp-search" type="search" placeholder="Tìm điểm theo tên hoặc SĐT" />
@@ -31,29 +38,27 @@ export async function render({ container }) {
   `;
 
   const listEl = container.querySelector("#dp-list");
-
-  async function refresh() {
-    listEl.innerHTML = skeleton(72, 4);
-    try {
-      const items = await call("salep.api.point.list_my_points", { search: search || null, limit: 200 });
-      listEl.innerHTML = items.length
-        ? `<div class="dp-list">${items.map(row).join("")}</div>`
-        : emptyState("Chưa có điểm bán nào", "🏪", "Nhấn + để tạo điểm trưng bày");
-    } catch (e) {
-      toastError(e.message);
-      listEl.innerHTML = emptyState("Không tải được danh sách", "⚠️");
-    }
+  function renderList(filter = "") {
+    const f = filter.toLowerCase();
+    const items = all.filter(
+      (p) => !f || (p.point_name || "").toLowerCase().includes(f) || (p.phone || "").toLowerCase().includes(f)
+    );
+    listEl.innerHTML = items.length
+      ? `<div class="dp-list">${items.map(row).join("")}</div>`
+      : emptyState("Chưa có điểm bán nào", "🏪", "Nhấn + để tạo điểm trưng bày");
   }
+  renderList();
 
-  let t;
   const input = container.querySelector(".dp-search");
+  let t;
   input.addEventListener("input", () => {
     clearTimeout(t);
-    t = setTimeout(() => {
-      search = input.value.trim();
-      refresh();
-    }, 300);
+    t = setTimeout(() => renderList(input.value.trim()), 200);
   });
 
-  await refresh();
+  // Bản đồ toàn bộ điểm có toạ độ (không phụ thuộc ô tìm).
+  renderMap(
+    container.querySelector("#dp-map"),
+    all.map((p) => ({ lat: p.latitude, lng: p.longitude, title: p.point_name, sub: p.phone }))
+  );
 }

@@ -1,6 +1,7 @@
 import { html, icon, emptyState } from "../lib/dom.js";
 import { esc, statusBadge, formatDate } from "../lib/format.js";
 import { call } from "../lib/api.js";
+import { renderMap } from "../lib/map.js";
 import { setHeaderTitle } from "../components/nav.js";
 import { toastError } from "../components/toast.js";
 
@@ -48,9 +49,22 @@ export async function render({ container, params }) {
       "circle-plus"
     )} Đăng ký điểm tham gia</button>
 
-    <div class="dp-section-head"><h2>Điểm tham gia</h2></div>
+    <div class="dp-section-head"><h2>Bản đồ điểm tham gia</h2></div>
+    <div class="dp-map" id="dp-map"></div>
+
+    <div class="dp-section-head"><h2>Danh sách điểm</h2></div>
     <div class="dp-list">
       ${list.length ? list.map(row).join("") : emptyState("Chưa có điểm tham gia", "📦")}
     </div>
   `;
+
+  renderMap(
+    container.querySelector("#dp-map"),
+    list.map((o) => ({
+      lat: o.point_latitude,
+      lng: o.point_longitude,
+      title: o.point_name || o.display_point,
+      sub: o.workflow_state,
+    }))
+  );
 }

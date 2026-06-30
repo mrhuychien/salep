@@ -107,7 +107,7 @@ def _attach_point_info(rows):
         for p in frappe.get_all(
             "Display Point",
             filters={"name": ("in", point_names)},
-            fields=["name", "point_name", "phone", "store_photo"],
+            fields=["name", "point_name", "phone", "store_photo", "latitude", "longitude"],
         ):
             points[p.name] = p
     for r in rows:
@@ -115,6 +115,8 @@ def _attach_point_info(rows):
         r["point_name"] = p.get("point_name")
         r["point_phone"] = p.get("phone")
         r["point_photo"] = p.get("store_photo")
+        r["point_latitude"] = p.get("latitude")
+        r["point_longitude"] = p.get("longitude")
     return rows
 
 
