@@ -63,7 +63,9 @@ def _upsert_workflow():
 
     wf.document_type = "Display Participation"
     wf.workflow_state_field = STATE_FIELD
-    wf.is_active = 1
+    # INACTIVE: app tự quản chuyển trạng thái bằng code (db_set). Workflow active
+    # với tên state tiếng Việt dễ lệch chuẩn Unicode → lỗi 'transition not allowed'.
+    wf.is_active = 0
     wf.override_status = 0
     wf.send_email_alert = 0
 

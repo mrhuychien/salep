@@ -151,6 +151,7 @@ def create_participation(
 
     Ảnh đăng ký = ảnh báo cáo tháng đầu (visit #1) để tính độ phủ theo tháng.
     """
+    _disable_workflow()
     _assert_owns_point(display_point)
 
     # Idempotent: điểm đã đăng ký chương trình này → mở lượt hiện có thay vì lỗi trùng.
@@ -194,6 +195,7 @@ def create_participation(
 @frappe.whitelist()
 def add_visit(participation, display_photo, latitude=None, longitude=None, gps_accuracy=None):
     """Thêm ảnh báo cáo trưng bày của tháng hiện tại (GPS + thời gian tự động)."""
+    _disable_workflow()
     if not display_photo:
         frappe.throw(_("Cần ảnh báo cáo."))
     doc = frappe.get_doc("Display Participation", participation)
@@ -215,18 +217,18 @@ def add_visit(participation, display_photo, latitude=None, longitude=None, gps_a
     return {"name": doc.name, "visits": len(doc.visits)}
 
 
-def _ensure_workflow():
-    """Tự tạo workflow nếu site chưa có (bench install-app bỏ qua patches) →
-    tránh lỗi 'workflow not found' khi Gửi duyệt/Duyệt/Từ chối."""
-    if frappe.db.exists("Workflow", "Display Participation Approval"):
+def _disable_workflow():
+    """Tắt Frappe Workflow đang active cho Display Participation. Ta tự quản trạng
+    thái bằng code (db_set); workflow active với tên state lệch chuẩn Unicode gây
+    lỗi 'transition not allowed from Nhap to Nháp' mỗi khi insert/save. Self-heal."""
+    active = frappe.get_all(
+        "Workflow", filters={"document_type": "Display Participation", "is_active": 1}, pluck="name"
+    )
+    if not active:
         return
-    try:
-        from salep.patches.v0_0_1 import setup_workflow
-
-        setup_workflow.execute()
-        frappe.clear_cache(doctype="Display Participation")
-    except Exception:
-        frappe.log_error(title="salep: tự tạo workflow thất bại")
+    for wf in active:
+        frappe.db.set_value("Workflow", wf, "is_active", 0)
+    frappe.clear_cache(doctype="Display Participation")
 
 
 def _canon(state):
@@ -240,6 +242,7 @@ def _canon(state):
 @frappe.whitelist()
 def submit_for_approval(name):
     """Nháp/Từ chối → Chờ duyệt. NVBH chủ lượt (hoặc QL kênh/admin)."""
+    _disable_workflow()
     doc = frappe.get_doc("Display Participation", name)
     doc.check_permission("write")
     if _canon(doc.workflow_state) not in (STATE_DRAFT, STATE_REJECTED):
@@ -254,6 +257,7 @@ def submit_for_approval(name):
 def approve(name):
     """Chờ duyệt → Đã duyệt. Role-gated Channel Manager."""
     _assert_channel_manager()
+    _disable_workflow()
     doc = frappe.get_doc("Display Participation", name)
     if _canon(doc.workflow_state) != STATE_PENDING:
         frappe.throw(_("Chỉ duyệt được lượt đang Chờ duyệt."))
@@ -267,6 +271,7 @@ def approve(name):
 def reject(name, reject_reason):
     """Chờ duyệt → Từ chối. Bắt buộc reject_reason. Role-gated."""
     _assert_channel_manager()
+    _disable_workflow()
     if not reject_reason:
         frappe.throw(_("Phải nhập lý do từ chối."))
     doc = frappe.get_doc("Display Participation", name)
@@ -291,6 +296,7 @@ def update_participation(name, **kwargs):
     KHÔNG sửa ở Chờ duyệt). Đổi điểm/chương trình chỉ khi chưa duyệt. doc.save()
     chạy validate (unique cặp, subject) và ghi version (track_changes).
     """
+    _disable_workflow()
     doc = frappe.get_doc("Display Participation", name)
     doc.check_permission("write")
     _assert_can_edit(doc)
