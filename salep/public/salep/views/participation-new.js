@@ -1,5 +1,5 @@
 import { html, icon, getGeolocation } from "../lib/dom.js";
-import { esc, formatDate } from "../lib/format.js";
+import { esc, formatDate, formatDateTime } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
@@ -62,13 +62,13 @@ export async function render({ container, query }) {
 
       <div class="dp-field">
         <label class="dp-field-label">Ảnh trưng bày đợt này <em>*</em></label>
-        <span class="dp-field-hint">Chụp ảnh cách trưng bày sản phẩm tại cửa hàng.</span>
+        <span class="dp-field-hint">Chụp ảnh cách trưng bày tại cửa hàng — tự động lấy GPS + thời gian, ảnh được nén tối ưu trước khi tải lên.</span>
         <button type="button" class="dp-uploader" data-shot>
           <span class="dp-uploader-icon">${icon("camera")}</span>
           <span class="dp-uploader-text">Chụp ảnh</span>
         </button>
         <input type="file" accept="image/*" capture="environment" hidden data-file />
-        <button type="button" class="dp-gps-chip" data-gps>${icon("location-dot")}<span data-gpstext>Lấy GPS lúc chấm</span></button>
+        <button type="button" class="dp-gps-chip" data-gps>${icon("location-dot")}<span data-gpstext>Tự động lấy GPS + thời gian khi chụp</span></button>
       </div>
     </div>
 
@@ -159,31 +159,55 @@ export async function render({ container, query }) {
     });
   }
 
-  container.querySelector("[data-gps]").addEventListener("click", async () => {
-    try {
-      const pos = await getGeolocation();
-      Object.assign(gps, pos);
-      const warn = pos.accuracy > 100 ? ` ⚠${Math.round(pos.accuracy)}m` : "";
-      gpsText.textContent = `${pos.latitude.toFixed(6)}, ${pos.longitude.toFixed(6)}${warn}`;
-      container.querySelector("[data-gps]").classList.add("is-ok");
-    } catch (err) {
-      toastError(err.message);
+  // Tem GPS + thời gian gắn vào ảnh; tự cập nhật khi chụp xong.
+  let capturedAt = null;
+  const gpsChip = container.querySelector("[data-gps]");
+  function refreshStamp() {
+    const parts = [];
+    if (capturedAt) parts.push(formatDateTime(capturedAt));
+    if (gps.latitude != null) {
+      const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
+      parts.push(`${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}${warn}`);
     }
-  });
+    gpsText.textContent = parts.join(" · ") || "Tự động lấy GPS + thời gian khi chụp";
+    gpsChip.classList.toggle("is-ok", gps.latitude != null);
+  }
 
-  uploader.addEventListener("click", () => fileInput.click());
+  // Bấm chụp: khởi động GPS NGAY trong cử chỉ bấm (prompt quyền dễ hiện trên mobile).
+  let gpsPromise = null;
+  uploader.addEventListener("click", () => {
+    gpsPromise = getGeolocation().catch(() => null);
+    fileInput.click();
+  });
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files[0];
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
-      const res = await uploadFile(file, { fieldname: "display_photo" });
+      const res = await uploadFile(file, { fieldname: "display_photo" }); // resizeImage chạy bên trong
       photoUrl = res.file_url;
+      const pos = (await gpsPromise) || {};
+      if (pos.latitude != null) Object.assign(gps, pos);
+      capturedAt = new Date();
+      if (gps.latitude == null)
+        toast("Không lấy được GPS — ảnh vẫn lưu (cần HTTPS + cho phép định vị)", "warning");
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
+      refreshStamp();
     } catch (err) {
       toastError(err.message);
     } finally {
       uploader.classList.remove("is-loading");
+    }
+  });
+
+  // Bấm chip = lấy lại GPS thủ công (phòng khi lần chụp đầu bị từ chối quyền).
+  gpsChip.addEventListener("click", async () => {
+    try {
+      Object.assign(gps, await getGeolocation());
+      if (!capturedAt) capturedAt = new Date();
+      refreshStamp();
+    } catch (err) {
+      toastError(err.message);
     }
   });
 
