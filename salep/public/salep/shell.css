@@ -484,9 +484,10 @@ a.dp-kpi-card:active { transform: scale(0.97); }
 .dp-guide-close:active { transform: scale(0.94); }
 .dp-guide-viewport { overflow: hidden; }
 .dp-guide-track { display: flex; transition: transform 0.3s ease; }
-.dp-guide-slide { flex: 0 0 100%; box-sizing: border-box; text-align: center; padding: 1rem 0.5rem 0.5rem; }
-.dp-guide-emoji { font-size: 3.4rem; line-height: 1;
-  filter: drop-shadow(0 6px 14px var(--dp-season-glow)); margin-bottom: 0.85rem; }
+.dp-guide-slide { flex: 0 0 100%; box-sizing: border-box; text-align: center; padding: 0.25rem 0.5rem 0.5rem; }
+.dp-guide-figure { display: flex; justify-content: center; margin-bottom: 0.6rem; }
+.dp-guide-illus { display: block; width: auto; height: 168px;
+  filter: drop-shadow(0 8px 18px var(--dp-season-glow)); }
 .dp-guide-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
 .dp-guide-body { font-size: 0.9rem; color: var(--dp-text-2); margin: 0; line-height: 1.55; min-height: 4.5em; }
 .dp-guide-dots { display: flex; justify-content: center; gap: 6px; margin: 0.85rem 0; }
