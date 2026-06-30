@@ -6,7 +6,6 @@ import unicodedata
 
 import frappe
 from frappe import _
-from frappe.model.workflow import apply_workflow
 from frappe.utils import flt, now_datetime
 
 STATE_DRAFT = "Nháp"
@@ -230,41 +229,52 @@ def _ensure_workflow():
         frappe.log_error(title="salep: tự tạo workflow thất bại")
 
 
+def _canon(state):
+    """Giá trị canonical (NFC) cho state, so khớp bất kể chuẩn Unicode/thiếu dấu."""
+    return _STATE_FOLD.get(_fold(state)) or state
+
+
+# Chuyển trạng thái bằng db_set (KHÔNG dùng apply_workflow) để né hẳn lỗi khớp
+# byte Unicode của Frappe ('transition not allowed from Nhap to Nháp'). Vẫn tự
+# kiểm role/điều kiện và ghi giá trị NFC chuẩn → nắn luôn dữ liệu lệch chuẩn cũ.
 @frappe.whitelist()
 def submit_for_approval(name):
-    """Nháp/Từ chối → Chờ duyệt (action 'Gửi duyệt'/'Gửi lại'). NVBH chủ lượt."""
-    _ensure_workflow()
-    _fix_state(name)
+    """Nháp/Từ chối → Chờ duyệt. NVBH chủ lượt (hoặc QL kênh/admin)."""
     doc = frappe.get_doc("Display Participation", name)
     doc.check_permission("write")
-    action = "Gửi lại" if doc.workflow_state == STATE_REJECTED else "Gửi duyệt"
-    apply_workflow(doc, action)
-    return {"name": doc.name, "workflow_state": doc.workflow_state}
+    if _canon(doc.workflow_state) not in (STATE_DRAFT, STATE_REJECTED):
+        frappe.throw(_("Chỉ gửi duyệt khi lượt đang Nháp hoặc Từ chối."))
+    if not doc.display_photo:
+        frappe.throw(_("Cần ảnh trưng bày trước khi gửi duyệt."))
+    doc.db_set("workflow_state", STATE_PENDING)
+    return {"name": doc.name, "workflow_state": STATE_PENDING}
 
 
 @frappe.whitelist()
 def approve(name):
-    """Chờ duyệt → Đã duyệt (action 'Duyệt'). Role-gated Channel Manager."""
+    """Chờ duyệt → Đã duyệt. Role-gated Channel Manager."""
     _assert_channel_manager()
-    _ensure_workflow()
-    _fix_state(name)
     doc = frappe.get_doc("Display Participation", name)
-    apply_workflow(doc, "Duyệt")
-    return {"name": doc.name, "workflow_state": doc.workflow_state, "approved_by": doc.approved_by}
+    if _canon(doc.workflow_state) != STATE_PENDING:
+        frappe.throw(_("Chỉ duyệt được lượt đang Chờ duyệt."))
+    doc.db_set("approved_by", frappe.session.user)
+    doc.db_set("approved_on", now_datetime())
+    doc.db_set("workflow_state", STATE_APPROVED)
+    return {"name": doc.name, "workflow_state": STATE_APPROVED, "approved_by": frappe.session.user}
 
 
 @frappe.whitelist()
 def reject(name, reject_reason):
-    """Chờ duyệt → Từ chối (action 'Từ chối'). Bắt buộc reject_reason. Role-gated."""
+    """Chờ duyệt → Từ chối. Bắt buộc reject_reason. Role-gated."""
     _assert_channel_manager()
-    _ensure_workflow()
-    _fix_state(name)
     if not reject_reason:
         frappe.throw(_("Phải nhập lý do từ chối."))
     doc = frappe.get_doc("Display Participation", name)
-    doc.reject_reason = reject_reason
-    apply_workflow(doc, "Từ chối")
-    return {"name": doc.name, "workflow_state": doc.workflow_state}
+    if _canon(doc.workflow_state) != STATE_PENDING:
+        frappe.throw(_("Chỉ từ chối được lượt đang Chờ duyệt."))
+    doc.db_set("reject_reason", reject_reason)
+    doc.db_set("workflow_state", STATE_REJECTED)
+    return {"name": doc.name, "workflow_state": STATE_REJECTED}
 
 
 # Field luôn cho sửa (chụp lại ảnh / cập nhật GPS).
