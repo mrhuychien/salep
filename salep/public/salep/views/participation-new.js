@@ -102,29 +102,35 @@ export async function render({ container, query }) {
   }
   function renderResults(filter) {
     const f = (filter || "").trim().toLowerCase();
-    if (!f) {
-      pointResults.hidden = true;
-      pointResults.innerHTML = "";
-      return;
+    // Không có từ khoá → hiện luôn toàn bộ điểm (chỉ cần bấm vào là ra list).
+    const list = (f
+      ? points.filter(
+          (p) => (p.point_name || "").toLowerCase().includes(f) || (p.phone || "").toLowerCase().includes(f)
+        )
+      : points
+    ).slice(0, 30);
+    if (!points.length) {
+      pointResults.innerHTML = `<div class="dp-combo-item dp-text-muted">Chưa có điểm bán — bấm “Tạo điểm mới”.</div>`;
+    } else {
+      pointResults.innerHTML = list.length
+        ? list
+            .map(
+              (p) =>
+                `<div class="dp-combo-item" data-point="${esc(p.name)}"><span class="dp-combo-name">${esc(
+                  p.point_name || p.name
+                )}</span><span class="dp-combo-sub">${esc(p.phone || "")}</span></div>`
+            )
+            .join("")
+        : `<div class="dp-combo-item dp-text-muted">Không tìm thấy điểm phù hợp.</div>`;
     }
-    const list = points
-      .filter((p) => (p.point_name || "").toLowerCase().includes(f) || (p.phone || "").toLowerCase().includes(f))
-      .slice(0, 20);
-    pointResults.innerHTML = list.length
-      ? list
-          .map(
-            (p) =>
-              `<div class="dp-combo-item" data-point="${esc(p.name)}"><span class="dp-combo-name">${esc(
-                p.point_name || p.name
-              )}</span><span class="dp-combo-sub">${esc(p.phone || "")}</span></div>`
-          )
-          .join("")
-      : `<div class="dp-combo-item dp-text-muted">Không tìm thấy điểm phù hợp.</div>`;
     pointResults.hidden = false;
   }
   renderSelected();
 
   pointSearch.addEventListener("input", () => renderResults(pointSearch.value));
+  // Chạm/focus vào ô là bung danh sách ngay (không cần gõ).
+  pointSearch.addEventListener("focus", () => renderResults(pointSearch.value));
+  pointSearch.addEventListener("click", () => renderResults(pointSearch.value));
   pointResults.addEventListener("click", (e) => {
     const it = e.target.closest("[data-point]");
     if (!it) return;
