@@ -289,6 +289,19 @@ body { margin: 0 !important; background: #f8fafc !important; }
   background: var(--dp-surface); border: 1px solid var(--dp-border); color: var(--dp-text-2); font-weight: 600; font-size: 0.82rem; }
 .dp-pill.dp-active { background: var(--dp-season-grad); color: #fff; border-color: transparent; }
 
+/* ── Pick (nút chọn radio-card: chương trình) ── */
+.dp-pick { display: flex; flex-direction: column; gap: 0.5rem; }
+.dp-pick-btn { display: flex; align-items: center; gap: 0.7rem; width: 100%; text-align: left; cursor: pointer; font-family: inherit;
+  padding: 0.85rem 1rem; border-radius: var(--dp-radius-md); border: 1px solid var(--dp-border); background: var(--dp-surface); color: var(--dp-text); }
+.dp-pick-btn:active { transform: scale(0.99); }
+.dp-pick-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--dp-border); flex-shrink: 0; position: relative; }
+.dp-pick-info { display: flex; flex-direction: column; min-width: 0; }
+.dp-pick-name { font-weight: 700; font-size: 0.92rem; }
+.dp-pick-sub { font-size: 0.75rem; color: var(--dp-text-3); }
+.dp-pick-btn.is-active { border-color: var(--dp-season-1); box-shadow: 0 0 0 3px var(--dp-season-glow); }
+.dp-pick-btn.is-active .dp-pick-dot { border-color: var(--dp-season-1); }
+.dp-pick-btn.is-active .dp-pick-dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--dp-season-1); }
+
 /* ── Uploader + GPS chip ── */
 .dp-uploader {
   width: 100%; min-height: 150px; cursor: pointer; font-family: inherit; padding: 0.75rem;

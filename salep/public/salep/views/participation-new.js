@@ -1,5 +1,5 @@
 import { html, icon, getGeolocation } from "../lib/dom.js";
-import { esc } from "../lib/format.js";
+import { esc, formatDate } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
@@ -46,10 +46,26 @@ export async function render({ container, query }) {
 
       <div class="dp-field">
         <label class="dp-field-label">Chọn chương trình <em>*</em></label>
-        <select class="dp-select" id="dp-program">
-          <option value="">— Chọn chương trình đang chạy —</option>
-          ${opt(programs, preProgram, "program_name")}
-        </select>
+        ${
+          programs.length
+            ? `<div class="dp-pick" id="dp-program-pick">${programs
+                .map(
+                  (p) =>
+                    `<button type="button" class="dp-pick-btn${
+                      p.name === preProgram ? " is-active" : ""
+                    }" data-prog="${esc(p.name)}">
+                      <span class="dp-pick-dot"></span>
+                      <span class="dp-pick-info">
+                        <span class="dp-pick-name">${esc(p.program_name)}</span>
+                        <span class="dp-pick-sub">${esc(formatDate(p.start_date))} – ${esc(
+                      formatDate(p.end_date)
+                    )}</span>
+                      </span>
+                    </button>`
+                )
+                .join("")}</div>`
+            : `<div class="dp-text-sm dp-text-muted">Chưa có chương trình đang chạy.</div>`
+        }
       </div>
 
       <div class="dp-field">
@@ -74,7 +90,18 @@ export async function render({ container, query }) {
   const uploader = container.querySelector("[data-shot]");
   const gpsText = container.querySelector("[data-gpstext]");
   const pointSel = container.querySelector("#dp-point");
-  const programSel = container.querySelector("#dp-program");
+
+  // Chọn chương trình bằng nút (radio-card) thay vì dropdown.
+  let selectedProgram = preProgram || "";
+  const pick = container.querySelector("#dp-program-pick");
+  if (pick) {
+    pick.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-prog]");
+      if (!b) return;
+      selectedProgram = b.dataset.prog;
+      pick.querySelectorAll("[data-prog]").forEach((x) => x.classList.toggle("is-active", x === b));
+    });
+  }
 
   container.querySelector("[data-gps]").addEventListener("click", async () => {
     try {
@@ -106,14 +133,14 @@ export async function render({ container, query }) {
 
   async function persist(submit) {
     if (!pointSel.value) return toast("Chọn điểm bán", "error");
-    if (!programSel.value) return toast("Chọn chương trình", "error");
+    if (!selectedProgram) return toast("Chọn chương trình", "error");
     if (!photoUrl) return toast("Cần chụp ảnh trưng bày", "error");
 
     container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = true));
     try {
       const created = await call("salep.api.participation.create_participation", {
         display_point: pointSel.value,
-        promotion_program: programSel.value,
+        promotion_program: selectedProgram,
         display_photo: photoUrl,
         latitude: gps.latitude,
         longitude: gps.longitude,
