@@ -182,6 +182,7 @@ export async function render({ container, query }) {
   });
 
   let createdName = null; // tạo MỘT lần — tránh trùng khi bấm lại sau lỗi submit
+  let alreadyExisted = false;
   async function persist(submit) {
     if (!selectedPoint) return toast("Chọn điểm bán", "error");
     if (!selectedProgram) return toast("Chọn chương trình", "error");
@@ -190,7 +191,7 @@ export async function render({ container, query }) {
     const btns = container.querySelectorAll("[data-act]");
     btns.forEach((b) => (b.disabled = true));
 
-    // 1) Tạo lượt (chỉ 1 lần). Lỗi tạo → bật lại nút, không sang trang.
+    // 1) Tạo lượt (chỉ 1 lần). Nếu điểm đã đăng ký chương trình này → mở lượt cũ.
     if (!createdName) {
       try {
         const created = await call("salep.api.participation.create_participation", {
@@ -202,6 +203,7 @@ export async function render({ container, query }) {
           gps_accuracy: gps.accuracy,
         });
         createdName = created.name;
+        alreadyExisted = !!created.existed;
       } catch (err) {
         toastError(err.message);
         btns.forEach((b) => (b.disabled = false));
@@ -209,8 +211,10 @@ export async function render({ container, query }) {
       }
     }
 
-    // 2) Gửi duyệt (tuỳ chọn). Submit lỗi vẫn sang chi tiết để thử lại ở đó.
-    if (submit) {
+    // 2) Đã tồn tại → mở lượt cũ (không tạo/gửi lại). Nếu mới → Gửi duyệt (tuỳ chọn).
+    if (alreadyExisted) {
+      toast("Điểm đã đăng ký chương trình này — mở lượt hiện có", "warning");
+    } else if (submit) {
       try {
         await call("salep.api.participation.submit_for_approval", { name: createdName });
         toastSuccess("Đã gửi duyệt");

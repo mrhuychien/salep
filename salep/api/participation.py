@@ -153,6 +153,17 @@ def create_participation(
     Ảnh đăng ký = ảnh báo cáo tháng đầu (visit #1) để tính độ phủ theo tháng.
     """
     _assert_owns_point(display_point)
+
+    # Idempotent: điểm đã đăng ký chương trình này → mở lượt hiện có thay vì lỗi trùng.
+    existing = frappe.db.get_value(
+        "Display Participation",
+        {"display_point": display_point, "promotion_program": promotion_program},
+        ["name", "workflow_state"],
+        as_dict=True,
+    )
+    if existing:
+        return {"name": existing.name, "workflow_state": existing.workflow_state, "existed": True}
+
     doc = frappe.new_doc("Display Participation")
     doc.update(
         {
