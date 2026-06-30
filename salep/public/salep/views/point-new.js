@@ -7,8 +7,7 @@ import { toast, toastError, toastSuccess } from "../components/toast.js";
 
 const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBank", "Agribank", "VPBank"];
 
-export async function render({ container, query }) {
-  const next = query && query.next;
+export async function render({ container }) {
   const gps = { latitude: null, longitude: null, accuracy: null };
   let photoUrl = null;
 
@@ -77,7 +76,7 @@ export async function render({ container, query }) {
     </form>
 
     <div class="dp-actionbar">
-      <button class="dp-btn-primary" data-submit>${icon("floppy-disk")} Lưu điểm bán</button>
+      <button class="dp-btn-primary" data-submit>${icon("floppy-disk")} Lưu & đăng ký chương trình</button>
     </div>
   `;
 
@@ -125,11 +124,47 @@ export async function render({ container, query }) {
     }
   });
 
+  const submitLabel = `${icon("floppy-disk")} Lưu & đăng ký`;
+  const register = (pt) => `/participations/new?point=${encodeURIComponent(pt)}`;
+  const reset = (btn) => {
+    btn.disabled = false;
+    btn.innerHTML = submitLabel;
+  };
+
   container.querySelector("[data-submit]").addEventListener("click", async (e) => {
-    if (!form.reportValidity()) return;
-    if (!photoUrl) return toast("Cần chụp ảnh cửa hàng", "error");
     const btn = e.currentTarget;
+    const phone = (form.querySelector('[name="phone"]').value || "").trim();
+    if (!phone) {
+      form.reportValidity();
+      return;
+    }
+
     btn.disabled = true;
+    btn.innerHTML = "Đang kiểm tra...";
+
+    // 1) SĐT đã có điểm? → bỏ qua tạo mới, chuyển sang đăng ký với điểm đó.
+    try {
+      const existing = await call("salep.api.point.point_by_phone", { phone });
+      if (existing) {
+        if (existing.owned) {
+          toastSuccess("Điểm đã tồn tại — chuyển sang đăng ký chương trình");
+          return navigate(register(existing.name));
+        }
+        toastError("SĐT này đã thuộc điểm của nhân viên khác");
+        return reset(btn);
+      }
+    } catch (err) {
+      toastError(err.message);
+      return reset(btn);
+    }
+
+    // 2) Tạo điểm mới (cần đủ thông tin + ảnh).
+    if (!form.reportValidity()) return reset(btn);
+    if (!photoUrl) {
+      toast("Cần chụp ảnh cửa hàng", "error");
+      return reset(btn);
+    }
+
     btn.innerHTML = "Đang lưu...";
     const fd = new FormData(form);
     try {
@@ -145,12 +180,11 @@ export async function render({ container, query }) {
         bank_account_no: fd.get("bank_account_no"),
         bank_name: fd.get("bank_name"),
       });
-      toastSuccess("Đã tạo điểm bán");
-      navigate(next === "participation" ? `/participations/new?point=${encodeURIComponent(created.name)}` : "/points");
+      toastSuccess("Đã tạo điểm — chuyển sang đăng ký chương trình");
+      navigate(register(created.name));
     } catch (err) {
       toastError(err.message);
-      btn.disabled = false;
-      btn.innerHTML = "Lưu điểm bán";
+      reset(btn);
     }
   });
 }

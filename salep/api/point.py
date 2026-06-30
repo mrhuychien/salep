@@ -103,6 +103,22 @@ def create_point(
 
 
 @frappe.whitelist()
+def point_by_phone(phone):
+    """Tra điểm theo SĐT (khoá chống trùng). Trả {name, owned} hoặc None.
+
+    `owned` = điểm thuộc người gọi (hoặc QL kênh) → có thể dùng để đăng ký luôn.
+    """
+    if not phone:
+        return None
+    row = frappe.db.get_value("Display Point", {"phone": phone}, ["name", "owner"], as_dict=True)
+    if not row:
+        return None
+    roles = set(frappe.get_roles())
+    owned = row.owner == frappe.session.user or bool(roles & {"Channel Manager", "System Manager"})
+    return {"name": row.name, "owned": owned}
+
+
+@frappe.whitelist()
 def list_my_points(search=None, limit=20):
     """Liệt kê điểm của NVBH đang đăng nhập (If Owner) để tái sử dụng.
 
