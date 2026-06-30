@@ -1,25 +1,15 @@
-import { esc } from "../lib/format.js";
+// Toast góc trên-phải, viền trái màu trạng thái (design-system 8.12).
+const TYPE_CLASS = { success: "dp-success", error: "dp-error", warning: "dp-warning" };
 
-let host;
-function ensureHost() {
-  if (!host) {
-    host = document.createElement("div");
-    host.className = "dp-toast-host";
-    document.body.appendChild(host);
-  }
-  return host;
-}
-
-export function toast(message, type = "info", ms = 3200) {
-  const h = ensureHost();
+export function toast(message, type = "info", ms = 3500) {
+  const host = document.getElementById("dp-toast-mount");
+  if (!host) return;
   const el = document.createElement("div");
-  el.className = `dp-toast dp-toast--${type}`;
-  const ic = type === "error" ? "error" : type === "success" ? "check_circle" : "info";
-  el.innerHTML = `<span class="material-symbols-outlined">${ic}</span><span>${esc(message)}</span>`;
-  h.appendChild(el);
-  requestAnimationFrame(() => el.classList.add("is-show"));
+  el.className = "dp-toast" + (TYPE_CLASS[type] ? " " + TYPE_CLASS[type] : "");
+  el.textContent = message; // textContent → an toàn, không cần escape
+  host.appendChild(el);
   setTimeout(() => {
-    el.classList.remove("is-show");
+    el.classList.add("is-out");
     setTimeout(() => el.remove(), 250);
   }, ms);
 }

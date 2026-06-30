@@ -1,86 +1,83 @@
-import { html, icon, on, subHeader, getGeolocation } from "../lib/dom.js";
+import { html, icon, getGeolocation } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
-import { navigate, back } from "../lib/router.js";
+import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
 
 const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBank", "Agribank", "VPBank"];
 
 export async function render({ container, query }) {
-  const next = query && query.next; // 'participation' → đăng ký luôn sau khi tạo
+  const next = query && query.next;
   const gps = { latitude: null, longitude: null, accuracy: null };
   let photoUrl = null;
 
   container.innerHTML = html`
-    ${subHeader("Tạo điểm trưng bày")}
-    <form class="dp-page dp-form" id="dp-pointform">
-      <section class="dp-fieldset">
-        <h2 class="dp-fieldset__title">Thông tin điểm</h2>
-        <div class="dp-card dp-card--form">
-          <label class="dp-field">
-            <span class="dp-field__label">Tên điểm <em>*</em></span>
-            <input class="dp-input" name="point_name" required placeholder="Tên cửa hàng/đại lý" />
-          </label>
-          <label class="dp-field">
-            <span class="dp-field__label">Nhà phân phối</span>
+    <form class="dp-form-pad" id="dp-pointform">
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Thông tin điểm</div>
+        <div class="dp-card">
+          <div class="dp-field">
+            <label class="dp-field-label">Tên điểm <em>*</em></label>
+            <input class="dp-input" name="point_name" required placeholder="Tên cửa hàng / đại lý" />
+          </div>
+          <div class="dp-field">
+            <label class="dp-field-label">Nhà phân phối</label>
             <input class="dp-input dp-input--readonly" value="${esc(ctx.distributor || "(theo hồ sơ NVBH)")}" readonly />
-          </label>
-          <label class="dp-field">
-            <span class="dp-field__label">Số điện thoại <em>*</em></span>
+          </div>
+          <div class="dp-field">
+            <label class="dp-field-label">Số điện thoại <em>*</em></label>
             <input class="dp-input" name="phone" type="tel" required placeholder="09xxxxxxxx" />
-            <span class="dp-field__hint">${icon("info", "dp-i14")} Dùng để chống trùng điểm</span>
-          </label>
-          <label class="dp-field">
-            <span class="dp-field__label">Địa chỉ <em>*</em></span>
-            <textarea class="dp-input dp-textarea" name="address_line" rows="3" required placeholder="Số nhà, đường, phường/xã..."></textarea>
-          </label>
+            <span class="dp-field-hint">${icon("circle-info")} Dùng để chống trùng điểm</span>
+          </div>
+          <div class="dp-field">
+            <label class="dp-field-label">Địa chỉ <em>*</em></label>
+            <textarea class="dp-textarea" name="address_line" required placeholder="Số nhà, đường, phường/xã..."></textarea>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section class="dp-fieldset">
-        <h2 class="dp-fieldset__title">Định vị</h2>
-        <div class="dp-card dp-card--form">
-          <button type="button" class="dp-btn dp-btn--tonal dp-btn--block" data-gps>${icon("my_location")} Lấy vị trí GPS hiện tại</button>
-          <div class="dp-gpschip" data-gpschip hidden></div>
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Định vị</div>
+        <div class="dp-card">
+          <button type="button" class="dp-btn-outline" data-gps>${icon("location-crosshairs")} Lấy vị trí GPS hiện tại</button>
+          <div class="dp-gps-chip" data-gpschip hidden></div>
         </div>
-      </section>
+      </div>
 
-      <section class="dp-fieldset">
-        <h2 class="dp-fieldset__title">Ảnh cửa hàng <em class="dp-req">*</em></h2>
-        <div class="dp-card dp-card--form">
-          <button type="button" class="dp-uploader" data-shot>
-            <span class="dp-uploader__icon">${icon("photo_camera")}</span>
-            <span class="dp-uploader__text">Chụp ảnh mặt tiền cửa hàng</span>
-          </button>
-          <input type="file" accept="image/*" capture="environment" hidden data-file />
-        </div>
-      </section>
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
+        <button type="button" class="dp-uploader" data-shot>
+          <span class="dp-uploader-icon">${icon("camera")}</span>
+          <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
+        </button>
+        <input type="file" accept="image/*" capture="environment" hidden data-file />
+      </div>
 
-      <section class="dp-fieldset">
-        <h2 class="dp-fieldset__title">Tài khoản nhận thưởng</h2>
-        <div class="dp-card dp-card--form">
-          <label class="dp-field">
-            <span class="dp-field__label">Tên chủ tài khoản</span>
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Tài khoản nhận thưởng</div>
+        <div class="dp-card">
+          <div class="dp-field">
+            <label class="dp-field-label">Tên chủ tài khoản</label>
             <input class="dp-input dp-uppercase" name="bank_account_name" placeholder="NGUYEN VAN A" />
-          </label>
-          <label class="dp-field">
-            <span class="dp-field__label">Số tài khoản</span>
+          </div>
+          <div class="dp-field">
+            <label class="dp-field-label">Số tài khoản</label>
             <input class="dp-input" name="bank_account_no" inputmode="numeric" placeholder="Nhập số tài khoản" />
-          </label>
-          <label class="dp-field">
-            <span class="dp-field__label">Ngân hàng</span>
-            <select class="dp-input dp-select" name="bank_name">
+          </div>
+          <div class="dp-field">
+            <label class="dp-field-label">Ngân hàng</label>
+            <select class="dp-select" name="bank_name">
               <option value="">Chọn ngân hàng</option>
               ${BANKS.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join("")}
             </select>
-          </label>
+          </div>
         </div>
-      </section>
+      </div>
     </form>
 
     <div class="dp-actionbar">
-      <button class="dp-btn dp-btn--primary dp-btn--block" data-submit>Lưu điểm bán</button>
+      <button class="dp-btn-primary" data-submit>${icon("floppy-disk")} Lưu điểm bán</button>
     </div>
   `;
 
@@ -96,10 +93,12 @@ export async function render({ container, query }) {
       const pos = await getGeolocation();
       Object.assign(gps, pos);
       gpsChip.hidden = false;
-      const warn = pos.accuracy > 100 ? ` · ⚠ sai số ${Math.round(pos.accuracy)}m` : "";
-      gpsChip.innerHTML = `${icon("pin_drop", "dp-i18")}<span>${pos.latitude.toFixed(6)}, ${pos.longitude.toFixed(
-        6
-      )}${warn}</span>${icon("check_circle", "dp-i18 dp-ok")}`;
+      gpsChip.classList.add("is-ok");
+      const warn = pos.accuracy > 100 ? ` · ⚠ ${Math.round(pos.accuracy)}m` : "";
+      gpsChip.innerHTML = `${icon("location-dot")}<span>${pos.latitude.toFixed(6)}, ${pos.longitude.toFixed(6)}${warn}</span>${icon(
+        "circle-check",
+        "dp-ok"
+      )}`;
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -115,8 +114,8 @@ export async function render({ container, query }) {
     try {
       const res = await uploadFile(file, { fieldname: "store_photo" });
       photoUrl = res.file_url;
-      uploader.innerHTML = `<img class="dp-uploader__preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader__text">${icon(
-        "check_circle",
+      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
+        "circle-check",
         "dp-ok"
       )} Đã chọn ảnh — chạm để đổi</span>`;
     } catch (err) {
@@ -131,7 +130,7 @@ export async function render({ container, query }) {
     if (!photoUrl) return toast("Cần chụp ảnh cửa hàng", "error");
     const btn = e.currentTarget;
     btn.disabled = true;
-    btn.textContent = "Đang lưu...";
+    btn.innerHTML = "Đang lưu...";
     const fd = new FormData(form);
     try {
       const created = await call("salep.api.point.create_point", {
@@ -147,15 +146,11 @@ export async function render({ container, query }) {
         bank_name: fd.get("bank_name"),
       });
       toastSuccess("Đã tạo điểm bán");
-      if (next === "participation") {
-        navigate(`/participations/new?point=${encodeURIComponent(created.name)}`);
-      } else {
-        navigate("/points");
-      }
+      navigate(next === "participation" ? `/participations/new?point=${encodeURIComponent(created.name)}` : "/points");
     } catch (err) {
       toastError(err.message);
       btn.disabled = false;
-      btn.textContent = "Lưu điểm bán";
+      btn.innerHTML = "Lưu điểm bán";
     }
   });
 }

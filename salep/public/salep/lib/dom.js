@@ -35,23 +35,23 @@ export function on(root, event, selector, handler) {
   });
 }
 
+// Font Awesome 6 icon. Truyền tên không kèm "fa-" (vd icon("house")).
 export function icon(name, cls = "") {
-  return `<span class="material-symbols-outlined${cls ? " " + cls : ""}">${name}</span>`;
+  return `<i class="fas fa-${name}${cls ? " " + cls : ""}"></i>`;
 }
 
-// Header có nút back cho các trang con (form/chi tiết).
-export function subHeader(title) {
-  return `<header class="dp-topbar dp-topbar--sub">
-    <button class="dp-iconbtn" data-back aria-label="Quay lại">${icon("arrow_back")}</button>
-    <h1 class="dp-topbar__title">${esc(title)}</h1>
-    <span class="dp-topbar__spacer"></span>
-  </header>`;
+export function emptyState(text, emoji = "📭", sub = "") {
+  return `<div class="dp-empty"><div class="dp-empty-icon">${emoji}</div>
+    <div class="dp-empty-title">${esc(text)}</div>${
+      sub ? `<div class="dp-empty-sub">${esc(sub)}</div>` : ""
+    }</div>`;
 }
 
-export function emptyState(text, ic = "inbox", sub = "") {
-  return `<div class="dp-empty">${icon(ic)}<p>${esc(text)}</p>${
-    sub ? `<p class="dp-empty__sub">${esc(sub)}</p>` : ""
-  }</div>`;
+export function skeleton(height = 90, count = 3) {
+  return Array.from(
+    { length: count },
+    () => `<div class="dp-skeleton" style="height:${height}px;margin-bottom:.6rem"></div>`
+  ).join("");
 }
 
 // Lấy GPS hiện tại; resolve {latitude, longitude, accuracy} hoặc reject.

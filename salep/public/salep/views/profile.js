@@ -1,4 +1,4 @@
-import { html, icon, on } from "../lib/dom.js";
+import { html, icon } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { call } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
@@ -6,16 +6,13 @@ import { toastError, toastSuccess } from "../components/toast.js";
 
 const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBank", "Agribank", "VPBank"];
 
-function field(label, name, value, opts = {}) {
-  const attrs = `name="${name}" ${opts.readonly ? "readonly" : ""} ${opts.type ? `type="${opts.type}"` : ""} ${
-    opts.cls || ""
-  }`;
-  return `<label class="dp-field">
-    <span class="dp-field__label">${esc(label)}</span>
-    <input class="dp-input ${opts.readonly ? "dp-input--readonly" : ""} ${opts.upper ? "dp-uppercase" : ""}" ${attrs} value="${esc(
-    value || ""
-  )}" placeholder="${esc(opts.placeholder || "")}" />
-  </label>`;
+function field(label, nameAttr, value, opts = {}) {
+  return `<div class="dp-field">
+    <label class="dp-field-label">${esc(label)}</label>
+    <input class="dp-input ${opts.readonly ? "dp-input--readonly" : ""} ${opts.upper ? "dp-uppercase" : ""}"
+      name="${nameAttr}" ${opts.readonly ? "readonly" : ""} ${opts.type ? `type="${opts.type}"` : ""}
+      value="${esc(value || "")}" placeholder="${esc(opts.placeholder || "")}" />
+  </div>`;
 }
 
 export async function render({ container }) {
@@ -26,68 +23,57 @@ export async function render({ container }) {
     toastError(e.message);
   }
   const isNew = !p;
-  const initial = (ctx.fullName || "?").trim().slice(0, 1).toUpperCase();
+  const initial = (ctx.fullName || "?").trim().charAt(0).toUpperCase();
 
   container.innerHTML = html`
-    <header class="dp-topbar dp-topbar--list"><h1 class="dp-topbar__name">Hồ sơ của tôi</h1></header>
-    <form class="dp-page dp-form" id="dp-profile">
-      <section class="dp-profilehead">
-        <div class="dp-avatar dp-avatar--lg">${esc(initial)}</div>
-        <h2 class="dp-profilehead__name">${esc((p && p.full_name) || ctx.fullName)}</h2>
-        <p class="dp-profilehead__id">${esc((p && p.name) || ctx.user)}</p>
-      </section>
+    <div class="dp-profile-head">
+      <div class="dp-avatar">${esc(initial)}</div>
+      <div class="dp-profile-name">${esc((p && p.full_name) || ctx.fullName)}</div>
+      <div class="dp-profile-id">${esc((p && p.name) || ctx.user)}</div>
+    </div>
 
-      ${
-        isNew
-          ? `<div class="dp-note">${icon("info")} Bạn chưa có hồ sơ NVBH. Nhập thông tin và chọn NPP để tạo.</div>`
-          : ""
-      }
+    ${isNew ? `<div class="dp-note">${icon("circle-info")} Bạn chưa có hồ sơ NVBH. Nhập thông tin và chọn NPP để tạo.</div>` : ""}
 
-      <section class="dp-fieldset">
-        <h3 class="dp-fieldset__title dp-fieldset__title--primary">Thông tin cá nhân</h3>
-        <div class="dp-card dp-card--form">
+    <form id="dp-profile">
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Thông tin cá nhân</div>
+        <div class="dp-card">
           ${field("Họ tên", "full_name", (p && p.full_name) || ctx.fullName)}
           ${field("Số điện thoại", "phone", p && p.phone, { type: "tel" })}
           ${field("CCCD", "cccd", p && p.cccd)}
           ${
             isNew
-              ? field("NPP trực thuộc (mã Customer)", "distributor", ctx.distributor, {
-                  placeholder: "VD: CUST-0001",
-                })
+              ? field("NPP trực thuộc (mã Customer)", "distributor", ctx.distributor, { placeholder: "VD: CUST-0001" })
               : field("NPP trực thuộc", "distributor", p.distributor, { readonly: true })
           }
         </div>
-      </section>
+      </div>
 
-      <section class="dp-fieldset">
-        <h3 class="dp-fieldset__title dp-fieldset__title--primary">Tài khoản ngân hàng</h3>
-        <div class="dp-card dp-card--form">
+      <div class="dp-fieldset">
+        <div class="dp-fieldset-title">Tài khoản ngân hàng</div>
+        <div class="dp-card">
           ${field("Tên chủ TK", "bank_account_name", p && p.bank_account_name, { upper: true })}
           ${field("Số tài khoản", "bank_account_no", p && p.bank_account_no)}
-          <label class="dp-field">
-            <span class="dp-field__label">Ngân hàng</span>
-            <select class="dp-input dp-select" name="bank_name">
+          <div class="dp-field">
+            <label class="dp-field-label">Ngân hàng</label>
+            <select class="dp-select" name="bank_name">
               <option value="">Chọn ngân hàng</option>
               ${BANKS.map(
                 (b) => `<option value="${esc(b)}"${p && p.bank_name === b ? " selected" : ""}>${esc(b)}</option>`
               ).join("")}
             </select>
-          </label>
+          </div>
         </div>
-      </section>
-
-      <div class="dp-form__actions">
-        <button class="dp-btn dp-btn--primary dp-btn--block" data-save>${isNew ? "Tạo hồ sơ" : "Lưu thay đổi"}</button>
-        <button type="button" class="dp-btn dp-btn--ghost-danger dp-btn--block" data-logout>Đăng xuất</button>
       </div>
+
+      <button class="dp-btn-primary" data-save>${icon("floppy-disk")} ${isNew ? "Tạo hồ sơ" : "Lưu thay đổi"}</button>
+      <button type="button" class="dp-btn-outline dp-mt" data-logout>${icon("right-from-bracket")} Đăng xuất</button>
     </form>
   `;
 
   const form = container.querySelector("#dp-profile");
 
-  on(container, "click", "[data-save]", async (e) => {
-    e.preventDefault();
-    if (!form.reportValidity()) return;
+  container.querySelector("[data-save]").addEventListener("click", async (e) => {
     const fd = new FormData(form);
     const args = {
       full_name: fd.get("full_name"),
@@ -98,9 +84,10 @@ export async function render({ container }) {
       bank_name: fd.get("bank_name"),
     };
     if (isNew) args.distributor = fd.get("distributor");
+    if (!args.full_name || !args.phone) return toastError("Cần nhập họ tên và SĐT");
     if (isNew && !args.distributor) return toastError("Cần nhập NPP trực thuộc");
 
-    const btn = e.target.closest("[data-save]");
+    const btn = e.currentTarget;
     btn.disabled = true;
     try {
       await call("salep.api.profile.upsert_my_profile", args);
@@ -110,18 +97,5 @@ export async function render({ container }) {
       toastError(err.message);
       btn.disabled = false;
     }
-  });
-
-  on(container, "click", "[data-logout]", async () => {
-    try {
-      await fetch("/api/method/logout", {
-        method: "POST",
-        headers: { "X-Frappe-CSRF-Token": ctx.csrfToken || "" },
-        credentials: "same-origin",
-      });
-    } catch {
-      /* ignore */
-    }
-    window.location.href = "/login";
   });
 }

@@ -1,7 +1,7 @@
-import { html, icon, on, subHeader, getGeolocation } from "../lib/dom.js";
+import { html, icon, getGeolocation } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
-import { navigate, back } from "../lib/router.js";
+import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
 
 export async function render({ container, query }) {
@@ -14,7 +14,7 @@ export async function render({ container, query }) {
   let programs = [];
   try {
     [points, programs] = await Promise.all([
-      call("salep.api.point.list_my_points", { limit: 100 }),
+      call("salep.api.point.list_my_points", { limit: 200 }),
       call("salep.api.portal.list_programs", { running_only: 1 }),
     ]);
   } catch (e) {
@@ -32,42 +32,41 @@ export async function render({ container, query }) {
       .join("");
 
   container.innerHTML = html`
-    ${subHeader("Đăng ký tham gia")}
-    <main class="dp-page dp-form">
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Chọn điểm bán <em>*</em></span>
-        <select class="dp-input dp-select" id="dp-point">
+    <div class="dp-form-pad">
+      <div class="dp-field">
+        <label class="dp-field-label">Chọn điểm bán <em>*</em></label>
+        <select class="dp-select" id="dp-point">
           <option value="">— Chọn điểm có sẵn —</option>
           ${opt(points, prePoint, "point_name")}
         </select>
-        <button class="dp-btn dp-btn--tonal dp-btn--block dp-mt" data-newpoint>${icon("add")} Tạo điểm mới</button>
-      </section>
+        <button type="button" class="dp-btn-outline dp-mt" data-go="/points/new?next=participation">${icon(
+          "plus"
+        )} Tạo điểm mới</button>
+      </div>
 
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Chọn chương trình <em>*</em></span>
-        <select class="dp-input dp-select" id="dp-program">
+      <div class="dp-field">
+        <label class="dp-field-label">Chọn chương trình <em>*</em></label>
+        <select class="dp-select" id="dp-program">
           <option value="">— Chọn chương trình đang chạy —</option>
           ${opt(programs, preProgram, "program_name")}
         </select>
-      </section>
+      </div>
 
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Ảnh trưng bày đợt này <em>*</em></span>
-        <p class="dp-field__hint">Chụp ảnh cách trưng bày sản phẩm tại cửa hàng.</p>
-        <button type="button" class="dp-uploader dp-uploader--lg" data-shot>
-          <span class="dp-uploader__icon">${icon("photo_camera")}</span>
-          <span class="dp-uploader__text">Chụp ảnh</span>
+      <div class="dp-field">
+        <label class="dp-field-label">Ảnh trưng bày đợt này <em>*</em></label>
+        <span class="dp-field-hint">Chụp ảnh cách trưng bày sản phẩm tại cửa hàng.</span>
+        <button type="button" class="dp-uploader" data-shot>
+          <span class="dp-uploader-icon">${icon("camera")}</span>
+          <span class="dp-uploader-text">Chụp ảnh</span>
         </button>
         <input type="file" accept="image/*" capture="environment" hidden data-file />
-        <button type="button" class="dp-gpschip dp-gpschip--btn" data-gps>
-          ${icon("location_on", "dp-i18")}<span data-gpstext>Lấy GPS lúc chấm</span>
-        </button>
-      </section>
-    </main>
+        <button type="button" class="dp-gps-chip" data-gps>${icon("location-dot")}<span data-gpstext>Lấy GPS lúc chấm</span></button>
+      </div>
+    </div>
 
-    <div class="dp-actionbar dp-actionbar--stack">
-      <button class="dp-btn dp-btn--primary dp-btn--block" data-act="submit">Gửi duyệt</button>
-      <button class="dp-btn dp-btn--outline dp-btn--block" data-act="draft">Lưu nháp</button>
+    <div class="dp-actionbar">
+      <button class="dp-btn-primary" data-act="submit">${icon("paper-plane")} Gửi duyệt</button>
+      <button class="dp-btn-outline" data-act="draft">Lưu nháp</button>
     </div>
   `;
 
@@ -76,10 +75,6 @@ export async function render({ container, query }) {
   const gpsText = container.querySelector("[data-gpstext]");
   const pointSel = container.querySelector("#dp-point");
   const programSel = container.querySelector("#dp-program");
-
-  container.querySelector("[data-newpoint]").addEventListener("click", () =>
-    navigate("/points/new?next=participation")
-  );
 
   container.querySelector("[data-gps]").addEventListener("click", async () => {
     try {
@@ -101,7 +96,7 @@ export async function render({ container, query }) {
     try {
       const res = await uploadFile(file, { fieldname: "display_photo" });
       photoUrl = res.file_url;
-      uploader.innerHTML = `<img class="dp-uploader__preview" src="${esc(photoUrl)}" alt="">`;
+      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -110,17 +105,15 @@ export async function render({ container, query }) {
   });
 
   async function persist(submit) {
-    const display_point = pointSel.value;
-    const promotion_program = programSel.value;
-    if (!display_point) return toast("Chọn điểm bán", "error");
-    if (!promotion_program) return toast("Chọn chương trình", "error");
+    if (!pointSel.value) return toast("Chọn điểm bán", "error");
+    if (!programSel.value) return toast("Chọn chương trình", "error");
     if (!photoUrl) return toast("Cần chụp ảnh trưng bày", "error");
 
     container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = true));
     try {
       const created = await call("salep.api.participation.create_participation", {
-        display_point,
-        promotion_program,
+        display_point: pointSel.value,
+        promotion_program: programSel.value,
         display_photo: photoUrl,
         latitude: gps.latitude,
         longitude: gps.longitude,
@@ -139,5 +132,7 @@ export async function render({ container, query }) {
     }
   }
 
-  on(container, "click", "[data-act]", (e, el) => persist(el.dataset.act === "submit"));
+  container.querySelectorAll("[data-act]").forEach((b) =>
+    b.addEventListener("click", () => persist(b.dataset.act === "submit"))
+  );
 }

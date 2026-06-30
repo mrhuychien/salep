@@ -1,7 +1,8 @@
 // Điểm vào SPA: render khung, đăng ký route, code-split view theo route.
 import { ctx } from "./lib/store.js";
 import { route, setNotFound, onChange, start, navigate } from "./lib/router.js";
-import { renderChrome, setActiveTab, setChrome, viewEl } from "./components/nav.js";
+import { renderChrome, setActiveTab, setChrome, setHeader, viewEl } from "./components/nav.js";
+import { skeleton } from "./lib/dom.js";
 import { toastError } from "./components/toast.js";
 
 // Cache-bust view động: mỗi full load đổi ?v= → không kẹt bản cũ.
@@ -20,35 +21,33 @@ const VIEWS = {
 };
 
 async function load(key, props = {}) {
-  // Thay #dp-view bằng node mới → bỏ mọi listener delegated của view trước
-  // (tránh chồng listener & double-fire khi điều hướng qua lại).
+  // Thay #dp-view bằng node mới → bỏ mọi listener delegated của view trước.
   const old = viewEl();
   const container = old.cloneNode(false);
   old.parentNode.replaceChild(container, old);
-  container.innerHTML =
-    '<div class="dp-loading"><span class="material-symbols-outlined dp-spin">progress_activity</span></div>';
+  container.innerHTML = skeleton(96, 4);
   try {
     const mod = await VIEWS[key]();
     await mod.render({ container, ...props });
   } catch (err) {
     console.error(err);
-    container.innerHTML = `<div class="dp-empty"><span class="material-symbols-outlined">error</span><p>Không tải được màn hình.</p><p class="dp-empty__sub">${
+    container.innerHTML = `<div class="dp-empty"><div class="dp-empty-icon">⚠️</div><div class="dp-empty-title">Không tải được màn hình</div><div class="dp-empty-sub">${
       (err && err.message) || ""
-    }</p></div>`;
+    }</div></div>`;
     toastError((err && err.message) || "Lỗi tải màn hình");
   }
 }
 
 function defineRoutes() {
-  route("/", (p) => load("home", p), { tab: "home", chrome: "tabs" });
-  route("/points", (p) => load("points", p), { tab: "points", chrome: "tabs" });
-  route("/points/new", (p) => load("pointNew", p), { tab: "points", chrome: "subpage" });
-  route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs" });
-  route("/programs/:name", (p) => load("programDetail", p), { tab: "programs", chrome: "subpage" });
-  route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage" });
-  route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage" });
-  route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage" });
-  route("/profile", (p) => load("profile", p), { tab: "profile", chrome: "tabs" });
+  route("/", (p) => load("home", p), { tab: "home", chrome: "tabs", title: "Điểm Trưng Bày" });
+  route("/points", (p) => load("points", p), { tab: "points", chrome: "tabs", title: "Điểm bán" });
+  route("/points/new", (p) => load("pointNew", p), { tab: "points", chrome: "subpage", title: "Tạo điểm" });
+  route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs", title: "Chương trình" });
+  route("/programs/:name", (p) => load("programDetail", p), { tab: "programs", chrome: "subpage", title: "Chương trình" });
+  route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage", title: "Đăng ký" });
+  route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage", title: "Lượt tham gia" });
+  route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage", title: "Chỉnh sửa" });
+  route("/profile", (p) => load("profile", p), { tab: "profile", chrome: "tabs", title: "Hồ sơ" });
   setNotFound(() => navigate("/"));
 }
 
@@ -58,6 +57,7 @@ function main() {
   onChange(({ meta }) => {
     setActiveTab(meta.tab || "home");
     setChrome(meta.chrome || "tabs");
+    setHeader(meta.title || "Điểm Trưng Bày", meta.chrome === "subpage");
     window.scrollTo(0, 0);
   });
   defineRoutes();

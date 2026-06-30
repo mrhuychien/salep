@@ -1,10 +1,10 @@
-import { html, icon, on, subHeader, emptyState, getGeolocation } from "../lib/dom.js";
+import { html, icon, getGeolocation, emptyState } from "../lib/dom.js";
 import { esc, statusBadge } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
-import { back, navigate } from "../lib/router.js";
+import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
 
-const LOCKED_STATES = ["Chờ duyệt", "Đã duyệt"]; // không cho đổi điểm/chương trình
+const LOCKED_STATES = ["Chờ duyệt", "Đã duyệt"];
 
 export async function render({ container, params }) {
   const name = params.name;
@@ -12,19 +12,17 @@ export async function render({ container, params }) {
   try {
     [data, points, programs] = await Promise.all([
       call("salep.api.portal.get_participation", { name }),
-      call("salep.api.point.list_my_points", { limit: 100 }),
+      call("salep.api.point.list_my_points", { limit: 200 }),
       call("salep.api.portal.list_programs", { running_only: 1 }),
     ]);
   } catch (e) {
-    container.innerHTML = subHeader("Chỉnh sửa") + emptyState("Không tải được lượt tham gia", "error", e.message);
+    container.innerHTML = emptyState("Không tải được lượt tham gia", "⚠️", e.message);
     return;
   }
 
   const doc = data.doc;
   const state = doc.workflow_state;
   const lockLinks = LOCKED_STATES.includes(state);
-
-  // Snapshot ban đầu để chỉ gửi field thực sự đổi.
   const initial = {
     display_point: doc.display_point,
     promotion_program: doc.promotion_program,
@@ -36,18 +34,13 @@ export async function render({ container, params }) {
   let photoUrl = doc.display_photo;
   const gps = { latitude: doc.latitude, longitude: doc.longitude, accuracy: doc.gps_accuracy };
 
-  // Đảm bảo điểm/CT hiện tại luôn có trong dropdown (kể cả khi đã kết thúc).
   const ensure = (list, val, label) =>
     val && !list.some((x) => x.name === val) ? [{ name: val, [label]: val }, ...list] : list;
-  const pointOpts = ensure(points, doc.display_point, "point_name");
-  const programOpts = ensure(programs, doc.promotion_program, "program_name");
   const optionTags = (list, value, labelKey) =>
     list
       .map(
         (x) =>
-          `<option value="${esc(x.name)}"${x.name === value ? " selected" : ""}>${esc(
-            x[labelKey] || x.name
-          )}</option>`
+          `<option value="${esc(x.name)}"${x.name === value ? " selected" : ""}>${esc(x[labelKey] || x.name)}</option>`
       )
       .join("");
 
@@ -57,45 +50,46 @@ export async function render({ container, params }) {
     : "Chưa có GPS — chạm để lấy";
 
   container.innerHTML = html`
-    ${subHeader("Chỉnh sửa lượt tham gia")}
-    <main class="dp-page dp-form">
-      <div class="dp-editstate">Trạng thái hiện tại: ${statusBadge(state)}</div>
+    <div class="dp-form-pad">
+      <div class="dp-flex dp-items-center dp-gap-2 dp-text-sm dp-text-muted" style="margin-bottom:.85rem">
+        Trạng thái: ${statusBadge(state)}
+      </div>
 
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Điểm bán</span>
-        <select class="dp-input dp-select" id="dp-point" ${lockLinks ? "disabled" : ""}>
-          ${optionTags(pointOpts, doc.display_point, "point_name")}
+      <div class="dp-field">
+        <label class="dp-field-label">Điểm bán</label>
+        <select class="dp-select" id="dp-point" ${lockLinks ? "disabled" : ""}>
+          ${optionTags(ensure(points, doc.display_point, "point_name"), doc.display_point, "point_name")}
         </select>
-        ${lockLinks ? `<span class="dp-field__hint">${icon("lock", "dp-i14")} Khoá đổi điểm khi đã gửi/duyệt</span>` : ""}
-      </section>
+        ${lockLinks ? `<span class="dp-field-hint">${icon("lock")} Khoá đổi điểm khi đã gửi/duyệt</span>` : ""}
+      </div>
 
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Chương trình</span>
-        <select class="dp-input dp-select" id="dp-program" ${lockLinks ? "disabled" : ""}>
-          ${optionTags(programOpts, doc.promotion_program, "program_name")}
+      <div class="dp-field">
+        <label class="dp-field-label">Chương trình</label>
+        <select class="dp-select" id="dp-program" ${lockLinks ? "disabled" : ""}>
+          ${optionTags(ensure(programs, doc.promotion_program, "program_name"), doc.promotion_program, "program_name")}
         </select>
-      </section>
+      </div>
 
-      <section class="dp-field">
-        <span class="dp-field__label dp-field__label--lg">Ảnh trưng bày</span>
-        <button type="button" class="dp-uploader dp-uploader--lg" data-shot>
+      <div class="dp-field">
+        <label class="dp-field-label">Ảnh trưng bày</label>
+        <button type="button" class="dp-uploader" data-shot>
           ${
             photoUrl
-              ? `<img class="dp-uploader__preview" src="${esc(photoUrl)}" alt="">`
-              : `<span class="dp-uploader__icon">${icon("photo_camera")}</span><span class="dp-uploader__text">Chụp ảnh</span>`
+              ? `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`
+              : `<span class="dp-uploader-icon">${icon("camera")}</span><span class="dp-uploader-text">Chụp ảnh</span>`
           }
         </button>
-        <span class="dp-field__hint">${icon("photo_camera", "dp-i14")} Chạm ảnh để chụp lại</span>
+        <span class="dp-field-hint">${icon("camera")} Chạm ảnh để chụp lại</span>
         <input type="file" accept="image/*" capture="environment" hidden data-file />
-        <button type="button" class="dp-gpschip dp-gpschip--btn${hasGps ? " is-ok" : ""}" data-gps>
-          ${icon("location_on", "dp-i18")}<span data-gpstext>${esc(gpsLabel)}</span>
-        </button>
-      </section>
-    </main>
+        <button type="button" class="dp-gps-chip${hasGps ? " is-ok" : ""}" data-gps>${icon(
+          "location-dot"
+        )}<span data-gpstext>${esc(gpsLabel)}</span></button>
+      </div>
+    </div>
 
-    <div class="dp-actionbar dp-actionbar--stack">
-      <button class="dp-btn dp-btn--primary dp-btn--block" data-save>Lưu thay đổi</button>
-      <button class="dp-btn dp-btn--outline dp-btn--block" data-go="/participations/${encodeURIComponent(name)}">Huỷ</button>
+    <div class="dp-actionbar">
+      <button class="dp-btn-primary" data-save>${icon("floppy-disk")} Lưu thay đổi</button>
+      <button class="dp-btn-outline" data-go="/participations/${encodeURIComponent(name)}">Huỷ</button>
     </div>
   `;
 
@@ -104,7 +98,6 @@ export async function render({ container, params }) {
   const gpsText = container.querySelector("[data-gpstext]");
   const pointSel = container.querySelector("#dp-point");
   const programSel = container.querySelector("#dp-program");
-
 
   container.querySelector("[data-gps]").addEventListener("click", async () => {
     try {
@@ -126,7 +119,7 @@ export async function render({ container, params }) {
     try {
       const res = await uploadFile(file, { fieldname: "display_photo" });
       photoUrl = res.file_url;
-      uploader.innerHTML = `<img class="dp-uploader__preview" src="${esc(photoUrl)}" alt="">`;
+      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -134,7 +127,7 @@ export async function render({ container, params }) {
     }
   });
 
-  on(container, "click", "[data-save]", async (e) => {
+  container.querySelector("[data-save]").addEventListener("click", async (e) => {
     const payload = { name };
     if (!lockLinks) {
       if (pointSel.value && pointSel.value !== initial.display_point) payload.display_point = pointSel.value;
@@ -148,9 +141,9 @@ export async function render({ container, params }) {
 
     if (Object.keys(payload).length <= 1) return toast("Chưa có thay đổi nào", "info");
 
-    const btn = e.target.closest("[data-save]");
+    const btn = e.currentTarget;
     btn.disabled = true;
-    btn.textContent = "Đang lưu...";
+    btn.innerHTML = "Đang lưu...";
     try {
       await call("salep.api.participation.update_participation", payload);
       toastSuccess("Đã lưu thay đổi");
@@ -158,7 +151,7 @@ export async function render({ container, params }) {
     } catch (err) {
       toastError(err.message);
       btn.disabled = false;
-      btn.textContent = "Lưu thay đổi";
+      btn.innerHTML = "Lưu thay đổi";
     }
   });
 }

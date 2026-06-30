@@ -1,37 +1,32 @@
-import { html, icon, on, emptyState } from "../lib/dom.js";
+import { html, icon, emptyState } from "../lib/dom.js";
 import { esc, formatDate } from "../lib/format.js";
 import { call } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
-import { navigate } from "../lib/router.js";
 import { toastError } from "../components/toast.js";
 
-function statCard(label, value, cls) {
-  return `<div class="dp-stat ${cls}">
-    <span class="dp-stat__label">${esc(label)}</span>
-    <span class="dp-stat__value">${esc(value)}</span>
+function kpi(label, value, cls = "") {
+  return `<div class="dp-kpi-card">
+    <div class="dp-kpi-label">${esc(label)}</div>
+    <div class="dp-kpi-value ${cls}">${esc(value)}</div>
   </div>`;
 }
 
-function programCard(p, mine) {
+function progCard(p, mine) {
   const target = p.target_points || 0;
   const pct = target ? Math.min(100, Math.round((mine / target) * 100)) : 0;
-  return `<div class="dp-card dp-card--program" data-go="/participations/new?program=${encodeURIComponent(p.name)}">
-    <div class="dp-card__accent"></div>
-    <h3 class="dp-card__title">${esc(p.program_name)}</h3>
-    <div class="dp-card__meta">${icon("calendar_today", "dp-i14")} ${esc(formatDate(p.start_date))} – ${esc(
+  return `<div class="dp-prog-card" data-go="/programs/${encodeURIComponent(p.name)}">
+    <div class="dp-prog-top">
+      <h3 class="dp-prog-title">${esc(p.program_name)}</h3>
+      <span class="dp-badge dp-badge-primary">${esc(p.status || "")}</span>
+    </div>
+    <div class="dp-prog-meta"><span>${icon("calendar")} ${esc(formatDate(p.start_date))} – ${esc(
     formatDate(p.end_date)
-  )}</div>
+  )}</span></div>
     ${
       target
-        ? `<div class="dp-progress">
-             <div class="dp-progress__row"><span>Tiến độ của tôi</span><span class="dp-progress__num">${esc(
-               mine
-             )}/${esc(target)} điểm</span></div>
-             <div class="dp-progress__track"><div class="dp-progress__bar" style="width:${pct}%"></div></div>
-           </div>`
-        : `<div class="dp-card__meta">${icon("flag", "dp-i14")} Thưởng/điểm: ${esc(
-            (p.reward_per_point || 0).toLocaleString("vi-VN")
-          )}₫</div>`
+        ? `<div class="dp-progress-row"><span>Tiến độ của tôi</span><b>${esc(mine)}/${esc(target)} điểm</b></div>
+           <div class="dp-progress-track"><div class="dp-progress-bar" style="width:${pct}%"></div></div>`
+        : ""
     }
   </div>`;
 }
@@ -48,43 +43,37 @@ export async function render({ container }) {
     toastError(e.message);
   }
 
-  const stateCount = (s) => (summary.by_state.find((x) => x.state === s) || {}).cnt || 0;
-  const mineByProgram = {};
-  (summary.by_program || []).forEach((p) => (mineByProgram[p.program] = p.approved || 0));
+  const sc = (s) => (summary.by_state.find((x) => x.state === s) || {}).cnt || 0;
+  const mine = {};
+  (summary.by_program || []).forEach((p) => (mine[p.program] = p.approved || 0));
 
   container.innerHTML = html`
-    <header class="dp-topbar dp-topbar--home">
+    <div class="dp-view-banner">
       <div>
-        <p class="dp-topbar__hello">Xin chào,</p>
-        <h1 class="dp-topbar__name">${esc(ctx.fullName)}</h1>
+        <div class="dp-view-banner-subtitle">Xin chào,</div>
+        <div class="dp-view-banner-title">${esc(ctx.fullName)}</div>
       </div>
-      <button class="dp-iconbtn" data-go="/profile" aria-label="Hồ sơ">${icon("account_circle")}</button>
-    </header>
-    <div class="dp-page">
-      <section class="dp-stats">
-        ${statCard("Điểm của tôi", summary.total_points || 0, "dp-stat--primary")}
-        ${statCard("Chờ duyệt", stateCount("Chờ duyệt"), "dp-stat--pending")}
-        ${statCard("Đã duyệt", stateCount("Đã duyệt"), "dp-stat--approved")}
-      </section>
+      <div class="dp-view-banner-badge">${esc(ctx.distributor || "NVBH")}</div>
+    </div>
 
-      <button class="dp-btn dp-btn--primary dp-btn--block" data-go="/points/new">
-        ${icon("add")} Tạo điểm trưng bày
-      </button>
+    <div class="dp-kpi-grid">
+      ${kpi("Điểm của tôi", summary.total_points || 0)}
+      ${kpi("Chờ duyệt", sc("Chờ duyệt"), "warning")}
+      ${kpi("Đã duyệt", sc("Đã duyệt"), "success")}
+    </div>
 
-      <section class="dp-section">
-        <div class="dp-section__head">
-          <h2>Chương trình đang chạy</h2>
-          <a class="dp-link" data-go="/programs">Xem tất cả</a>
-        </div>
-        <div class="dp-cardlist">
-          ${
-            programs.length
-              ? programs.map((p) => programCard(p, mineByProgram[p.name] || 0)).join("")
-              : emptyState("Chưa có chương trình đang chạy", "campaign")
-          }
-        </div>
-      </section>
+    <button class="dp-btn-primary" data-go="/points/new">${icon("plus")} Tạo điểm trưng bày</button>
+
+    <div class="dp-section-head">
+      <h2>Chương trình đang chạy</h2>
+      <a class="dp-link" data-go="/programs">Xem tất cả</a>
+    </div>
+    <div class="dp-list">
+      ${
+        programs.length
+          ? programs.map((p) => progCard(p, mine[p.name] || 0)).join("")
+          : emptyState("Chưa có chương trình đang chạy", "📣")
+      }
     </div>
   `;
-
 }

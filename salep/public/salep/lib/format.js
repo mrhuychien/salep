@@ -42,17 +42,17 @@ export function formatVND(n) {
 
 // Trạng thái workflow → nhãn + class badge + icon. Khớp doc/04.
 export const STATES = {
-  "Nháp": { cls: "dp-badge--draft", icon: "edit_note" },
-  "Chờ duyệt": { cls: "dp-badge--pending", icon: "pending" },
-  "Đã duyệt": { cls: "dp-badge--approved", icon: "check_circle" },
-  "Từ chối": { cls: "dp-badge--rejected", icon: "cancel" },
+  "Nháp": { type: "muted", icon: "pen" },
+  "Chờ duyệt": { type: "warning", icon: "clock" },
+  "Đã duyệt": { type: "success", icon: "circle-check" },
+  "Từ chối": { type: "danger", icon: "circle-xmark" },
 };
 
 export function statusBadge(state) {
-  const s = STATES[state] || { cls: "dp-badge--draft", icon: "help" };
-  return `<span class="dp-badge ${s.cls}">${esc(state || "—")}</span>`;
+  const s = STATES[state] || { type: "muted", icon: "circle-question" };
+  return `<span class="dp-badge dp-badge-${s.type}">${esc(state || "—")}</span>`;
 }
 
 export function statusMeta(state) {
-  return STATES[state] || { cls: "dp-badge--draft", icon: "help" };
+  return STATES[state] || { type: "muted", icon: "circle-question" };
 }
