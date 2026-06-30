@@ -394,12 +394,16 @@ body.dp-subpage .dp-actionbar { bottom: 0; }
 .dp-lightbox img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; }
 .dp-lightbox-cap { color: #fff; font-size: 0.85rem; text-align: center; font-weight: 500; }
 
-/* ── Bản đồ (Leaflet) ── */
-.dp-map { position: relative; z-index: 0; height: 260px; border-radius: var(--dp-radius-md); overflow: hidden;
+/* ── Bản đồ (Leaflet vendor) ── */
+.dp-map { position: relative; z-index: 0; height: 300px; border-radius: var(--dp-radius-md); overflow: hidden;
   border: 1px solid var(--dp-border); margin-bottom: 1rem; background: var(--dp-surface-2); }
 .dp-map-empty { display: flex; align-items: center; justify-content: center; height: 100%;
   color: var(--dp-text-3); font-size: 0.85rem; padding: 1rem; text-align: center; }
 .leaflet-container { font: inherit; }
+/* Phá img{max-width:100%} của Bootstrap web template → tile không bị co vỡ khảm. */
+.dp-map .leaflet-container img { max-width: none !important; }
+/* Nút zoom +/− không bị reset box-sizing của app. */
+.dp-map .leaflet-bar a, .dp-map .leaflet-control-zoom a { box-sizing: content-box; }
 
 /* ── Alert link (cần ghé thăm) ── */
 .dp-alert-link { display: flex; align-items: center; gap: 0.6rem; background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
