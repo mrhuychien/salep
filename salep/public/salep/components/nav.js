@@ -74,6 +74,10 @@ export function renderChrome(root) {
       <button class="dp-acct-logout" data-logout><i class="fas fa-right-from-bracket"></i> Đăng xuất</button>
     </div>
 
+    <div class="dp-lightbox" id="dp-lightbox" hidden>
+      <img id="dp-lightbox-img" alt="">
+      <div class="dp-lightbox-cap" id="dp-lightbox-cap"></div>
+    </div>
     <div class="dp-modal-mount" id="dp-modal-mount"></div>
     <div class="dp-toast-mount" id="dp-toast-mount"></div>
   `;
@@ -87,6 +91,16 @@ export function renderChrome(root) {
 function onClick(e) {
   if (e.target.closest("input, textarea, select, label")) return;
   const t = e.target;
+  if (t.closest("#dp-lightbox")) {
+    closeLightbox();
+    return;
+  }
+  const zoom = t.closest("[data-zoom]");
+  if (zoom) {
+    e.preventDefault();
+    openLightbox(zoom.dataset.zoom, zoom.dataset.caption || "");
+    return;
+  }
   if (t.closest("[data-back]")) {
     e.preventDefault();
     back();
@@ -172,6 +186,17 @@ function closeModal() {
   if (!mount) return;
   mount.classList.remove("dp-show");
   mount.innerHTML = "";
+}
+
+function openLightbox(url, caption) {
+  if (!url) return;
+  document.getElementById("dp-lightbox-img").src = url;
+  document.getElementById("dp-lightbox-cap").textContent = caption || "";
+  document.getElementById("dp-lightbox").hidden = false;
+}
+function closeLightbox() {
+  const l = document.getElementById("dp-lightbox");
+  if (l) l.hidden = true;
 }
 
 export function setHeader(title, showBack) {

@@ -351,6 +351,15 @@ body.dp-subpage .dp-actionbar { bottom: 0; }
 .dp-visit-cell { position: relative; border-radius: var(--dp-radius-sm); overflow: hidden; aspect-ratio: 1; background: var(--dp-surface-2); }
 .dp-visit-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dp-visit-meta { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 0.65rem; font-weight: 600; text-align: center; padding: 2px; }
+.dp-visit-cell { cursor: zoom-in; }
+.dp-detail-photo img { cursor: zoom-in; }
+
+/* ── Lightbox xem ảnh to ── */
+.dp-lightbox { position: fixed; inset: 0; z-index: 10001; background: rgba(0, 0, 0, 0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; cursor: zoom-out; }
+.dp-lightbox[hidden] { display: none; }
+.dp-lightbox img { max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; }
+.dp-lightbox-cap { color: #fff; font-size: 0.85rem; text-align: center; font-weight: 500; }
 
 /* ── Alert link (cần ghé thăm) ── */
 .dp-alert-link { display: flex; align-items: center; gap: 0.6rem; background: #fef3c7; border: 1px solid #fde68a; color: #92400e;

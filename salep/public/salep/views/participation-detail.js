@@ -2,7 +2,7 @@ import { html, icon, emptyState, getGeolocation } from "../lib/dom.js";
 import { esc, formatDate, formatDateTime, statusMeta } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx, isManager } from "../lib/store.js";
-import { toastError, toastSuccess } from "../components/toast.js";
+import { toast, toastError, toastSuccess } from "../components/toast.js";
 
 function monthlyCard(cov, visits, canReport) {
   const pct = cov.required ? Math.min(100, Math.round((cov.have / cov.required) * 100)) : 0;
@@ -10,12 +10,15 @@ function monthlyCard(cov, visits, canReport) {
     ? `<span class="dp-badge dp-badge-warning">Thiếu ${cov.required - cov.have}</span>`
     : `<span class="dp-badge dp-badge-success">Đủ</span>`;
   const cells = visits
-    .map(
-      (v) =>
-        `<div class="dp-visit-cell"><img src="${esc(v.visit_photo)}" alt=""><div class="dp-visit-meta">${esc(
-          formatDate(v.captured_on)
-        )}</div></div>`
-    )
+    .map((v) => {
+      const hasGps = v.latitude != null && v.longitude != null;
+      const gpsStr = hasGps ? `${Number(v.latitude).toFixed(5)}, ${Number(v.longitude).toFixed(5)}` : "";
+      const cap = `${formatDate(v.captured_on)}${gpsStr ? " · GPS " + gpsStr : " · không có GPS"}`;
+      return `<div class="dp-visit-cell" data-zoom="${esc(v.visit_photo)}" data-caption="${esc(cap)}">
+        <img src="${esc(v.visit_photo)}" alt="">
+        <div class="dp-visit-meta">${esc(formatDate(v.captured_on))}${hasGps ? " " + icon("location-dot") : ""}</div>
+      </div>`;
+    })
     .join("");
   return `<div class="dp-card" style="margin-bottom:1rem">
     <div class="dp-card-heading">Báo cáo hàng tháng</div>
@@ -120,7 +123,13 @@ export async function render({ container, params }) {
       <span class="dp-sb-time">Cập nhật: ${esc(formatDateTime(doc.modified))}</span>
     </div>
     ${reject}
-    ${doc.display_photo ? `<div class="dp-detail-photo"><img src="${esc(doc.display_photo)}" alt=""></div>` : ""}
+    ${
+      doc.display_photo
+        ? `<div class="dp-detail-photo"><img src="${esc(doc.display_photo)}" data-zoom="${esc(
+            doc.display_photo
+          )}" data-caption="Ảnh đăng ký" alt=""></div>`
+        : ""
+    }
 
     ${infoCard("Thông tin điểm bán", [
       { icon: "store", value: pt.point_name, sub: pt.distributor ? "NPP: " + pt.distributor : "" },
@@ -140,18 +149,19 @@ export async function render({ container, params }) {
   const reportBtn = container.querySelector("[data-report]");
   if (reportBtn) {
     const visitFile = container.querySelector("[data-visitfile]");
-    reportBtn.addEventListener("click", () => visitFile.click());
+    let gpsPromise = null;
+    reportBtn.addEventListener("click", () => {
+      // Khởi động lấy GPS NGAY trong cử chỉ bấm → prompt quyền dễ hiện trên mobile.
+      gpsPromise = getGeolocation().catch(() => null);
+      visitFile.click();
+    });
     visitFile.addEventListener("change", async () => {
       const file = visitFile.files[0];
       if (!file) return;
       reportBtn.disabled = true;
       reportBtn.innerHTML = "Đang tải ảnh...";
-      let gps = {};
-      try {
-        gps = await getGeolocation();
-      } catch {
-        /* GPS best-effort */
-      }
+      const gps = (await gpsPromise) || {};
+      if (gps.latitude == null) toast("Không lấy được GPS — ảnh vẫn được lưu (cần HTTPS + cho phép định vị)", "warning");
       try {
         const up = await uploadFile(file, { fieldname: "visit_photo" });
         await call("salep.api.participation.add_visit", {
