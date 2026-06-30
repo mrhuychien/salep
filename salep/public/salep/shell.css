@@ -169,8 +169,13 @@ body { margin: 0 !important; background: #f8fafc !important; }
 
 /* ── KPI grid ── */
 .dp-kpi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; }
+.dp-kpi-grid--2 { grid-template-columns: 1fr 1fr; }
 .dp-kpi-card { background: var(--dp-surface); border: 1px solid var(--dp-border);
   border-radius: var(--dp-radius-md); padding: 0.85rem; box-shadow: var(--dp-shadow-sm); text-align: center; }
+a.dp-kpi-card { display: block; text-decoration: none; cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease; }
+a.dp-kpi-card:hover { box-shadow: var(--dp-shadow-md); }
+a.dp-kpi-card:active { transform: scale(0.97); }
 .dp-kpi-label { font-size: 0.66rem; color: var(--dp-text-3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
 .dp-kpi-value { font-size: 1.35rem; font-weight: 800; margin-top: 4px; color: var(--dp-text); }
 .dp-kpi-value.warning { color: var(--dp-warning); }
@@ -340,16 +345,20 @@ body { margin: 0 !important; background: #f8fafc !important; }
 .dp-gps-chip.is-ok { background: var(--dp-season-glow); border-color: transparent; color: var(--dp-text); }
 .dp-gps-chip .dp-ok { color: var(--dp-success); }
 
-/* ── Sticky action bar ── */
+/* ── Sticky action bar ──
+   Bottom-nav LUÔN hiển thị (kể cả subpage) → actionbar luôn nằm ngay TRÊN nav.
+   Bố trí nút theo HÀNG (wrap 2-up) cho gọn chiều cao thanh cố định đáy. */
 .dp-actionbar {
   position: fixed; left: 0; right: 0; bottom: var(--dp-bottom-h); z-index: 55;
   background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid var(--dp-border); padding: 0.75rem 1rem;
-  display: flex; flex-direction: column; gap: 0.5rem;
+  border-top: 1px solid var(--dp-border); padding: 0.55rem 0.85rem;
+  display: flex; flex-flow: row wrap; gap: 0.5rem;
 }
-body.dp-subpage .dp-bottom-nav { display: none; }
-body.dp-subpage .dp-actionbar { bottom: 0; }
-.dp-form-pad { padding-bottom: 7rem; }
+.dp-actionbar > * { flex: 1 1 45%; }
+.dp-actionbar .dp-btn-primary,
+.dp-actionbar .dp-btn-outline,
+.dp-actionbar .dp-btn-danger { padding: 0.65rem 1rem; font-size: 0.9rem; box-shadow: none; }
+.dp-form-pad { padding-bottom: 8rem; }
 
 /* ── Detail list / info ── */
 .dp-card-heading { font-size: 0.95rem; font-weight: 700; color: var(--dp-text); margin: 0 0 0.6rem; }

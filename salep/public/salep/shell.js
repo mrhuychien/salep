@@ -15,6 +15,7 @@ const VIEWS = {
   pointDetail: () => import(withV("./views/point-detail.js")),
   programs: () => import(withV("./views/programs.js")),
   programDetail: () => import(withV("./views/program-detail.js")),
+  participations: () => import(withV("./views/participations.js")),
   participationNew: () => import(withV("./views/participation-new.js")),
   participationDetail: () => import(withV("./views/participation-detail.js")),
   participationEdit: () => import(withV("./views/participation-edit.js")),
@@ -47,6 +48,7 @@ function defineRoutes() {
   route("/points/:name", (p) => load("pointDetail", p), { tab: "points", chrome: "subpage", title: "Điểm bán" });
   route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs", title: "Chương trình" });
   route("/programs/:name", (p) => load("programDetail", p), { tab: "programs", chrome: "subpage", title: "Chương trình" });
+  route("/participations", (p) => load("participations", p), { tab: "points", chrome: "tabs", title: "Lượt tham gia" });
   route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage", title: "Đăng ký" });
   route("/participations/:name", (p) => load("participationDetail", p), { tab: "points", chrome: "subpage", title: "Lượt tham gia" });
   route("/participations/:name/edit", (p) => load("participationEdit", p), { tab: "points", chrome: "subpage", title: "Chỉnh sửa" });

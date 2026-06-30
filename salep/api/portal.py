@@ -38,11 +38,22 @@ def coverage(start, end, captured_list, now=None):
 
 @frappe.whitelist()
 def list_programs(running_only=1):
-    """Chương trình để NVBH chọn đăng ký. running_only → chỉ 'Đang chạy'."""
+    """Chương trình để NVBH chọn đăng ký. running_only → chỉ 'Đang chạy'.
+
+    Cache ngắn 60s: API được gọi nhiều nhất, kết quả giống nhau mọi user
+    (không filter theo owner) → giảm tải DB lúc cao điểm (~100 NVBH cùng lúc).
+    """
+    running_only = frappe.utils.cint(running_only)
+    cache = frappe.cache()
+    ckey = f"salep:list_programs:{running_only}"
+    cached = cache.get_value(ckey)
+    if cached is not None:
+        return cached
+
     filters = {}
-    if frappe.utils.cint(running_only):
+    if running_only:
         filters["status"] = "Đang chạy"
-    return frappe.get_list(
+    rows = frappe.get_list(
         "Promotion Program",
         filters=filters,
         fields=[
@@ -52,6 +63,8 @@ def list_programs(running_only=1):
         order_by="start_date desc",
         limit_page_length=50,
     )
+    cache.set_value(ckey, rows, expires_in_sec=60)
+    return rows
 
 
 @frappe.whitelist()
@@ -88,6 +101,19 @@ def list_my_participations(search=None, state=None):
         r["point_name"] = p.get("point_name")
         r["point_phone"] = p.get("phone")
         r["point_photo"] = p.get("store_photo")
+
+    # Tên chương trình (1 query gộp) để thẻ danh sách hiển thị rõ ràng.
+    prog_ids = list({r.promotion_program for r in rows if r.promotion_program})
+    progs = {}
+    if prog_ids:
+        for pr in frappe.get_all(
+            "Promotion Program",
+            filters={"name": ("in", prog_ids)},
+            fields=["name", "program_name"],
+        ):
+            progs[pr.name] = pr.program_name
+    for r in rows:
+        r["program_name"] = progs.get(r.promotion_program)
 
     if search:
         s = search.lower()

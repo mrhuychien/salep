@@ -4,11 +4,11 @@ import { call } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
 import { toastError } from "../components/toast.js";
 
-function kpi(label, value, cls = "") {
-  return `<div class="dp-kpi-card">
-    <div class="dp-kpi-label">${esc(label)}</div>
+function kpi(label, value, go, cls = "") {
+  return `<a class="dp-kpi-card" data-go="${esc(go)}">
     <div class="dp-kpi-value ${cls}">${esc(value)}</div>
-  </div>`;
+    <div class="dp-kpi-label">${esc(label)}</div>
+  </a>`;
 }
 
 function progCard(p, mine) {
@@ -46,9 +46,11 @@ export async function render({ container }) {
   if (rPrograms.status === "fulfilled") programs = rPrograms.value || [];
   if (rVisit.status === "fulfilled") toVisit = rVisit.value || [];
 
-  const sc = (s) => (summary.by_state.find((x) => x.state === s) || {}).cnt || 0;
+  const pts = summary.points || {};
   const mine = {};
   (summary.by_program || []).forEach((p) => (mine[p.program] = p.approved || 0));
+  const partLink = (state) =>
+    state ? `/participations?state=${encodeURIComponent(state)}` : "/participations";
 
   container.innerHTML = html`
     <div class="dp-view-banner">
@@ -59,10 +61,11 @@ export async function render({ container }) {
       <div class="dp-view-banner-badge">${esc(ctx.distributor || "NVBH")}</div>
     </div>
 
-    <div class="dp-kpi-grid">
-      ${kpi("Điểm của tôi", summary.total_points || 0)}
-      ${kpi("Chờ duyệt", sc("Chờ duyệt"), "warning")}
-      ${kpi("Đã duyệt", sc("Đã duyệt"), "success")}
+    <div class="dp-kpi-grid dp-kpi-grid--2">
+      ${kpi("Điểm bán của tôi", pts.total || 0, "/points")}
+      ${kpi("Tham gia chương trình", pts.participating || 0, partLink(""))}
+      ${kpi("Chờ duyệt", pts.pending || 0, partLink("Chờ duyệt"), "warning")}
+      ${kpi("Đã duyệt", pts.approved || 0, partLink("Đã duyệt"), "success")}
     </div>
 
     ${

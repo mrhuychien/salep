@@ -10,6 +10,7 @@ import frappe
 from frappe import _
 
 STATE_APPROVED = "Đã duyệt"
+STATE_PENDING = "Chờ duyệt"
 
 
 def _assert_channel_manager():
@@ -48,7 +49,33 @@ def staff_summary():
     )
 
     my_points = frappe.db.count("Display Point", {"owner": user})
-    return {"by_state": by_state, "by_program": by_program, "total_points": my_points}
+
+    # Thống kê theo ĐIỂM BÁN (distinct display_point) cho 4 ô trang chủ:
+    #   tham gia chương trình / chờ duyệt / đã duyệt — một query duy nhất.
+    pstats = frappe.db.sql(
+        """
+        SELECT
+          COUNT(DISTINCT display_point) AS participating,
+          COUNT(DISTINCT CASE WHEN workflow_state = %(pending)s THEN display_point END) AS pending,
+          COUNT(DISTINCT CASE WHEN workflow_state = %(approved)s THEN display_point END) AS approved
+        FROM `tabDisplay Participation`
+        WHERE owner = %(user)s
+        """,
+        {"user": user, "pending": STATE_PENDING, "approved": STATE_APPROVED},
+        as_dict=True,
+    )[0]
+    points = {
+        "total": my_points,
+        "participating": frappe.utils.cint(pstats.participating),
+        "pending": frappe.utils.cint(pstats.pending),
+        "approved": frappe.utils.cint(pstats.approved),
+    }
+    return {
+        "by_state": by_state,
+        "by_program": by_program,
+        "total_points": my_points,
+        "points": points,
+    }
 
 
 @frappe.whitelist()
