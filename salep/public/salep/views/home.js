@@ -35,19 +35,16 @@ export async function render({ container }) {
   let summary = { by_state: [], by_program: [], total_points: 0 };
   let programs = [];
   let toVisit = [];
-  try {
-    [summary, programs] = await Promise.all([
-      call("salep.api.dashboard.staff_summary"),
-      call("salep.api.portal.list_programs", { running_only: 1 }),
-    ]);
-  } catch (e) {
-    toastError(e.message);
-  }
-  try {
-    toVisit = await call("salep.api.portal.list_points_to_visit");
-  } catch {
-    /* không chặn dashboard nếu lỗi */
-  }
+  // 3 API chạy song song; lỗi 1 cái không chặn cái khác.
+  const [rSummary, rPrograms, rVisit] = await Promise.allSettled([
+    call("salep.api.dashboard.staff_summary"),
+    call("salep.api.portal.list_programs", { running_only: 1 }),
+    call("salep.api.portal.list_points_to_visit"),
+  ]);
+  if (rSummary.status === "fulfilled") summary = rSummary.value;
+  else toastError(rSummary.reason && rSummary.reason.message);
+  if (rPrograms.status === "fulfilled") programs = rPrograms.value || [];
+  if (rVisit.status === "fulfilled") toVisit = rVisit.value || [];
 
   const sc = (s) => (summary.by_state.find((x) => x.state === s) || {}).cnt || 0;
   const mine = {};

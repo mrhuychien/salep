@@ -217,18 +217,26 @@ def add_visit(participation, display_photo, latitude=None, longitude=None, gps_a
     return {"name": doc.name, "visits": len(doc.visits)}
 
 
+_wf_checked = False  # đã kiểm tra/ tắt workflow trong tiến trình này chưa
+
+
 def _disable_workflow():
     """Tắt Frappe Workflow đang active cho Display Participation. Ta tự quản trạng
     thái bằng code (db_set); workflow active với tên state lệch chuẩn Unicode gây
-    lỗi 'transition not allowed from Nhap to Nháp' mỗi khi insert/save. Self-heal."""
+    lỗi 'transition not allowed from Nhap to Nháp' mỗi khi insert/save. Self-heal.
+
+    Chỉ truy vấn 1 lần/tiến trình (cache cờ) → không tốn query mỗi lần ghi."""
+    global _wf_checked
+    if _wf_checked:
+        return
     active = frappe.get_all(
         "Workflow", filters={"document_type": "Display Participation", "is_active": 1}, pluck="name"
     )
-    if not active:
-        return
-    for wf in active:
-        frappe.db.set_value("Workflow", wf, "is_active", 0)
-    frappe.clear_cache(doctype="Display Participation")
+    if active:
+        for wf in active:
+            frappe.db.set_value("Workflow", wf, "is_active", 0)
+        frappe.clear_cache(doctype="Display Participation")
+    _wf_checked = True
 
 
 def _canon(state):

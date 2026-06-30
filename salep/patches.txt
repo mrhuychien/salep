@@ -6,3 +6,4 @@ salep.patches.v0_0_1.setup_workflow
 salep.patches.v0_0_1.add_db_indexes
 salep.patches.v0_0_2.refresh_workflow
 salep.patches.v0_0_2.normalize_state
+salep.patches.v0_0_3.add_perf_indexes
