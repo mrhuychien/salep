@@ -4,3 +4,4 @@ salep.patches.v0_0_1.create_default_roles
 [post_model_sync]
 salep.patches.v0_0_1.setup_workflow
 salep.patches.v0_0_1.add_db_indexes
+salep.patches.v0_0_2.refresh_workflow

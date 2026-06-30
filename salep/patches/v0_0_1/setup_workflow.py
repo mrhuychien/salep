@@ -23,12 +23,13 @@ DOC_STATES = [
     ("Từ chối", "0", "Sales Staff"),
 ]
 
-# (from, action, to, allowed_role, condition) — doc/04 Transitions
+# (from, action, to, allowed_roles, condition) — doc/04 Transitions.
+# System Manager đi kèm mọi transition để admin vận hành/test được toàn luồng.
 TRANSITIONS = [
-    ("Nháp", "Gửi duyệt", "Chờ duyệt", "Sales Staff", "doc.display_photo"),
-    ("Chờ duyệt", "Duyệt", "Đã duyệt", "Channel Manager", ""),
-    ("Chờ duyệt", "Từ chối", "Từ chối", "Channel Manager", "doc.reject_reason"),
-    ("Từ chối", "Gửi lại", "Chờ duyệt", "Sales Staff", ""),
+    ("Nháp", "Gửi duyệt", "Chờ duyệt", ["Sales Staff", "System Manager"], "doc.display_photo"),
+    ("Chờ duyệt", "Duyệt", "Đã duyệt", ["Channel Manager", "System Manager"], ""),
+    ("Chờ duyệt", "Từ chối", "Từ chối", ["Channel Manager", "System Manager"], "doc.reject_reason"),
+    ("Từ chối", "Gửi lại", "Chờ duyệt", ["Sales Staff", "System Manager"], ""),
 ]
 
 
@@ -69,17 +70,18 @@ def _upsert_workflow():
     for state, doc_status, allow_edit in DOC_STATES:
         wf.append("states", {"state": state, "doc_status": doc_status, "allow_edit": allow_edit})
 
-    for from_state, action, to_state, allowed, condition in TRANSITIONS:
-        wf.append(
-            "transitions",
-            {
-                "state": from_state,
-                "action": action,
-                "next_state": to_state,
-                "allowed": allowed,
-                "allow_self_approval": 1,
-                "condition": condition,
-            },
-        )
+    for from_state, action, to_state, allowed_roles, condition in TRANSITIONS:
+        for role in allowed_roles:
+            wf.append(
+                "transitions",
+                {
+                    "state": from_state,
+                    "action": action,
+                    "next_state": to_state,
+                    "allowed": role,
+                    "allow_self_approval": 1,
+                    "condition": condition,
+                },
+            )
 
     wf.save(ignore_permissions=True)

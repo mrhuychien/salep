@@ -181,32 +181,46 @@ export async function render({ container, query }) {
     }
   });
 
+  let createdName = null; // tạo MỘT lần — tránh trùng khi bấm lại sau lỗi submit
   async function persist(submit) {
     if (!selectedPoint) return toast("Chọn điểm bán", "error");
     if (!selectedProgram) return toast("Chọn chương trình", "error");
     if (!photoUrl) return toast("Cần chụp ảnh trưng bày", "error");
 
-    container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = true));
-    try {
-      const created = await call("salep.api.participation.create_participation", {
-        display_point: selectedPoint,
-        promotion_program: selectedProgram,
-        display_photo: photoUrl,
-        latitude: gps.latitude,
-        longitude: gps.longitude,
-        gps_accuracy: gps.accuracy,
-      });
-      if (submit) {
-        await call("salep.api.participation.submit_for_approval", { name: created.name });
-        toastSuccess("Đã gửi duyệt");
-      } else {
-        toastSuccess("Đã lưu nháp");
+    const btns = container.querySelectorAll("[data-act]");
+    btns.forEach((b) => (b.disabled = true));
+
+    // 1) Tạo lượt (chỉ 1 lần). Lỗi tạo → bật lại nút, không sang trang.
+    if (!createdName) {
+      try {
+        const created = await call("salep.api.participation.create_participation", {
+          display_point: selectedPoint,
+          promotion_program: selectedProgram,
+          display_photo: photoUrl,
+          latitude: gps.latitude,
+          longitude: gps.longitude,
+          gps_accuracy: gps.accuracy,
+        });
+        createdName = created.name;
+      } catch (err) {
+        toastError(err.message);
+        btns.forEach((b) => (b.disabled = false));
+        return;
       }
-      navigate(`/participations/${encodeURIComponent(created.name)}`);
-    } catch (err) {
-      toastError(err.message);
-      container.querySelectorAll("[data-act]").forEach((b) => (b.disabled = false));
     }
+
+    // 2) Gửi duyệt (tuỳ chọn). Submit lỗi vẫn sang chi tiết để thử lại ở đó.
+    if (submit) {
+      try {
+        await call("salep.api.participation.submit_for_approval", { name: createdName });
+        toastSuccess("Đã gửi duyệt");
+      } catch (err) {
+        toastError(err.message);
+      }
+    } else {
+      toastSuccess("Đã lưu nháp");
+    }
+    navigate(`/participations/${encodeURIComponent(createdName)}`);
   }
 
   container.querySelectorAll("[data-act]").forEach((b) =>
