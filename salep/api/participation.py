@@ -2,6 +2,8 @@
 # For license information, please see license.txt
 """API & doc_events cho Display Participation (lượt tham gia + workflow duyệt)."""
 
+import unicodedata
+
 import frappe
 from frappe import _
 from frappe.model.workflow import apply_workflow
@@ -11,6 +13,26 @@ STATE_DRAFT = "Nháp"
 STATE_PENDING = "Chờ duyệt"
 STATE_APPROVED = "Đã duyệt"
 STATE_REJECTED = "Từ chối"
+
+
+def _fold(s):
+    """Bỏ dấu + thường hoá để so khớp bất kể chuẩn Unicode (NFC/NFD/thiếu dấu)."""
+    return unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower().strip()
+
+
+_STATE_FOLD = {_fold(s): s for s in (STATE_DRAFT, STATE_PENDING, STATE_APPROVED, STATE_REJECTED)}
+
+
+def _fix_state(name):
+    """Nắn workflow_state lệch chuẩn (vd 'Nháp' dạng NFD) về canonical trong DB,
+    để apply_workflow khớp transition. Sửa giá trị CŨ trước khi save (Frappe so
+    state cũ↔mới lúc save), nếu không sẽ báo 'transition not allowed from Nhap...'."""
+    cur = frappe.db.get_value("Display Participation", name, "workflow_state")
+    if not cur:
+        return
+    canon = _STATE_FOLD.get(_fold(cur))
+    if canon and canon != cur:
+        frappe.db.set_value("Display Participation", name, "workflow_state", canon, update_modified=False)
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +223,7 @@ def _ensure_workflow():
 def submit_for_approval(name):
     """Nháp/Từ chối → Chờ duyệt (action 'Gửi duyệt'/'Gửi lại'). NVBH chủ lượt."""
     _ensure_workflow()
+    _fix_state(name)
     doc = frappe.get_doc("Display Participation", name)
     doc.check_permission("write")
     action = "Gửi lại" if doc.workflow_state == STATE_REJECTED else "Gửi duyệt"
@@ -213,6 +236,7 @@ def approve(name):
     """Chờ duyệt → Đã duyệt (action 'Duyệt'). Role-gated Channel Manager."""
     _assert_channel_manager()
     _ensure_workflow()
+    _fix_state(name)
     doc = frappe.get_doc("Display Participation", name)
     apply_workflow(doc, "Duyệt")
     return {"name": doc.name, "workflow_state": doc.workflow_state, "approved_by": doc.approved_by}
@@ -223,6 +247,7 @@ def reject(name, reject_reason):
     """Chờ duyệt → Từ chối (action 'Từ chối'). Bắt buộc reject_reason. Role-gated."""
     _assert_channel_manager()
     _ensure_workflow()
+    _fix_state(name)
     if not reject_reason:
         frappe.throw(_("Phải nhập lý do từ chối."))
     doc = frappe.get_doc("Display Participation", name)

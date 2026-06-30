@@ -39,17 +39,17 @@ def execute():
 
 
 def _ensure_masters():
+    # ignore_if_duplicate → luôn đảm bảo bản canonical (NFC) tồn tại kể cả khi đã
+    # có bản lệch chuẩn từ lần tạo trước.
     for state, style in STATES:
-        if not frappe.db.exists("Workflow State", state):
-            frappe.get_doc(
-                {"doctype": "Workflow State", "workflow_state_name": state, "style": style}
-            ).insert(ignore_permissions=True)
+        frappe.get_doc(
+            {"doctype": "Workflow State", "workflow_state_name": state, "style": style}
+        ).insert(ignore_permissions=True, ignore_if_duplicate=True)
 
     for action in ACTIONS:
-        if not frappe.db.exists("Workflow Action Master", action):
-            frappe.get_doc(
-                {"doctype": "Workflow Action Master", "workflow_action_name": action}
-            ).insert(ignore_permissions=True)
+        frappe.get_doc(
+            {"doctype": "Workflow Action Master", "workflow_action_name": action}
+        ).insert(ignore_permissions=True, ignore_if_duplicate=True)
 
 
 def _upsert_workflow():
