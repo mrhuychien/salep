@@ -1,5 +1,5 @@
 import { html, icon, getGeolocation } from "../lib/dom.js";
-import { esc } from "../lib/format.js";
+import { esc, formatDateTime } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
 import { navigate } from "../lib/router.js";
@@ -46,6 +46,9 @@ export async function render({ container }) {
 
       <div class="dp-fieldset">
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
+        <span class="dp-field-hint">${icon(
+          "circle-info"
+        )} Tự động lấy GPS + thời gian khi chụp, ảnh được nén tối ưu trước khi tải lên.</span>
         <button type="button" class="dp-uploader" data-shot>
           <span class="dp-uploader-icon">${icon("camera")}</span>
           <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
@@ -85,19 +88,35 @@ export async function render({ container }) {
   const fileInput = container.querySelector("[data-file]");
   const uploader = container.querySelector("[data-shot]");
 
+  // Tem GPS + thời gian; dùng chung cho nút GPS thủ công và lúc chụp ảnh.
+  let capturedAt = null;
+  function refreshGpsChip() {
+    if (gps.latitude == null && !capturedAt) {
+      gpsChip.hidden = true;
+      return;
+    }
+    gpsChip.hidden = false;
+    gpsChip.classList.toggle("is-ok", gps.latitude != null);
+    const parts = [];
+    if (capturedAt) parts.push(formatDateTime(capturedAt));
+    if (gps.latitude != null) {
+      const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
+      parts.push(`${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`);
+    } else {
+      parts.push("chưa có GPS");
+    }
+    gpsChip.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
+      gps.latitude != null ? icon("circle-check", "dp-ok") : ""
+    }`;
+  }
+
   container.querySelector("[data-gps]").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
     try {
-      const pos = await getGeolocation();
-      Object.assign(gps, pos);
-      gpsChip.hidden = false;
-      gpsChip.classList.add("is-ok");
-      const warn = pos.accuracy > 100 ? ` · ⚠ ${Math.round(pos.accuracy)}m` : "";
-      gpsChip.innerHTML = `${icon("location-dot")}<span>${pos.latitude.toFixed(6)}, ${pos.longitude.toFixed(6)}${warn}</span>${icon(
-        "circle-check",
-        "dp-ok"
-      )}`;
+      Object.assign(gps, await getGeolocation()); // gọi = xin quyền nếu chưa cấp
+      if (!capturedAt) capturedAt = new Date();
+      refreshGpsChip();
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -105,14 +124,25 @@ export async function render({ container }) {
     }
   });
 
-  uploader.addEventListener("click", () => fileInput.click());
+  // Bấm chụp: xin quyền + lấy GPS NGAY trong cử chỉ bấm (prompt dễ hiện trên mobile).
+  let gpsPromise = null;
+  uploader.addEventListener("click", () => {
+    gpsPromise = getGeolocation().catch(() => null);
+    fileInput.click();
+  });
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files[0];
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
-      const res = await uploadFile(file, { fieldname: "store_photo" });
+      const res = await uploadFile(file, { fieldname: "store_photo" }); // resizeImage chạy bên trong
       photoUrl = res.file_url;
+      const pos = (await gpsPromise) || {};
+      if (pos.latitude != null) Object.assign(gps, pos);
+      capturedAt = new Date();
+      if (gps.latitude == null)
+        toast("Chưa lấy được GPS — bấm “Lấy vị trí GPS hiện tại” (cần HTTPS + cho phép định vị)", "warning");
+      refreshGpsChip();
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
         "circle-check",
         "dp-ok"
