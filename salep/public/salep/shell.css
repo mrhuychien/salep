@@ -291,6 +291,7 @@ body { margin: 0 !important; background: #f8fafc !important; }
 
 /* ── Pick (nút chọn radio-card: chương trình) ── */
 .dp-pick { display: flex; flex-direction: column; gap: 0.5rem; }
+.dp-pick-scroll { max-height: 340px; overflow-y: auto; }
 .dp-pick-btn { display: flex; align-items: center; gap: 0.7rem; width: 100%; text-align: left; cursor: pointer; font-family: inherit;
   padding: 0.85rem 1rem; border-radius: var(--dp-radius-md); border: 1px solid var(--dp-border); background: var(--dp-surface); color: var(--dp-text); }
 .dp-pick-btn:active { transform: scale(0.99); }
