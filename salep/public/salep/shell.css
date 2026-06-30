@@ -303,6 +303,25 @@ body { margin: 0 !important; background: #f8fafc !important; }
 .dp-pick-btn.is-active .dp-pick-dot { border-color: var(--dp-season-1); }
 .dp-pick-btn.is-active .dp-pick-dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--dp-season-1); }
 
+/* ── Combobox (chọn điểm bán gọn) ── */
+.dp-combo { position: relative; }
+.dp-combo-results { margin-top: 0.4rem; border: 1px solid var(--dp-border); border-radius: var(--dp-radius-md);
+  background: var(--dp-surface); max-height: 260px; overflow-y: auto; box-shadow: var(--dp-shadow-md); }
+.dp-combo-results[hidden] { display: none; }
+.dp-combo-item { display: flex; flex-direction: column; padding: 0.6rem 0.85rem; cursor: pointer; border-bottom: 1px solid var(--dp-border); }
+.dp-combo-item:last-child { border-bottom: none; }
+.dp-combo-item:hover { background: var(--dp-surface-2); }
+.dp-combo-name { font-weight: 600; font-size: 0.9rem; }
+.dp-combo-sub { font-size: 0.78rem; color: var(--dp-text-3); }
+.dp-selected-card { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+  border: 1px solid var(--dp-season-1); box-shadow: 0 0 0 3px var(--dp-season-glow); border-radius: var(--dp-radius-md); background: var(--dp-surface); }
+.dp-sc-info { flex: 1; min-width: 0; }
+.dp-sc-name { font-weight: 700; font-size: 0.92rem; }
+.dp-sc-sub { font-size: 0.78rem; color: var(--dp-text-3); }
+.dp-sc-clear { border: none; background: var(--dp-surface-2); color: var(--dp-text-2); border-radius: 8px;
+  padding: 6px 10px; font-family: inherit; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+.dp-sc-clear:hover { background: var(--dp-border); }
+
 /* ── Uploader + GPS chip ── */
 .dp-uploader {
   width: 100%; min-height: 150px; cursor: pointer; font-family: inherit; padding: 0.75rem;

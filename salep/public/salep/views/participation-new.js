@@ -25,11 +25,14 @@ export async function render({ container, query }) {
     <div class="dp-form-pad">
       <div class="dp-field">
         <label class="dp-field-label">Chọn điểm bán <em>*</em></label>
-        <div class="dp-search-wrap" style="margin-bottom:.5rem">
-          ${icon("magnifying-glass")}
-          <input class="dp-search" id="dp-point-search" type="search" placeholder="Tìm điểm theo tên hoặc SĐT" />
+        <div id="dp-point-selected"></div>
+        <div class="dp-combo">
+          <div class="dp-search-wrap" style="margin-bottom:0">
+            ${icon("magnifying-glass")}
+            <input class="dp-search" id="dp-point-search" type="search" autocomplete="off" placeholder="Tìm & chọn điểm (tên/SĐT)" />
+          </div>
+          <div class="dp-combo-results" id="dp-point-results" hidden></div>
         </div>
-        <div class="dp-pick dp-pick-scroll" id="dp-point-pick"></div>
         <button type="button" class="dp-btn-outline dp-mt" data-go="/points/new">${icon("plus")} Tạo điểm mới</button>
       </div>
 
@@ -79,37 +82,63 @@ export async function render({ container, query }) {
   const uploader = container.querySelector("[data-shot]");
   const gpsText = container.querySelector("[data-gpstext]");
 
-  // Chọn điểm bán bằng ô tìm + danh sách nút (lọc theo tên/SĐT).
+  // Chọn điểm bán: combobox gọn — gõ để lọc, chọn xong thu lại còn 1 thẻ.
   let selectedPoint = prePoint || "";
-  const pointPick = container.querySelector("#dp-point-pick");
   const pointSearch = container.querySelector("#dp-point-search");
-  const pointBtn = (p) =>
-    `<button type="button" class="dp-pick-btn${p.name === selectedPoint ? " is-active" : ""}" data-point="${esc(
-      p.name
-    )}"><span class="dp-pick-dot"></span><span class="dp-pick-info"><span class="dp-pick-name">${esc(
-      p.point_name || p.name
-    )}</span><span class="dp-pick-sub">${esc(p.phone || "")}</span></span></button>`;
-  function renderPoints(filter = "") {
-    const f = filter.toLowerCase();
-    const list = points.filter(
-      (p) =>
-        !f || (p.point_name || "").toLowerCase().includes(f) || (p.phone || "").toLowerCase().includes(f)
-    );
-    pointPick.innerHTML = list.length
-      ? list.map(pointBtn).join("")
-      : `<div class="dp-text-sm dp-text-muted">Không tìm thấy điểm phù hợp.</div>`;
+  const pointResults = container.querySelector("#dp-point-results");
+  const selectedBox = container.querySelector("#dp-point-selected");
+  const pointById = (id) => points.find((p) => p.name === id);
+
+  function renderSelected() {
+    const p = pointById(selectedPoint);
+    selectedBox.innerHTML = p
+      ? `<div class="dp-selected-card">${icon("store")}
+          <div class="dp-sc-info"><div class="dp-sc-name">${esc(p.point_name || p.name)}</div><div class="dp-sc-sub">${esc(
+          p.phone || ""
+        )}</div></div>
+          <button type="button" class="dp-sc-clear" data-clear>Đổi</button>
+        </div>`
+      : "";
   }
-  renderPoints();
-  pointPick.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-point]");
-    if (!b) return;
-    selectedPoint = b.dataset.point;
-    pointPick.querySelectorAll("[data-point]").forEach((x) => x.classList.toggle("is-active", x === b));
+  function renderResults(filter) {
+    const f = (filter || "").trim().toLowerCase();
+    if (!f) {
+      pointResults.hidden = true;
+      pointResults.innerHTML = "";
+      return;
+    }
+    const list = points
+      .filter((p) => (p.point_name || "").toLowerCase().includes(f) || (p.phone || "").toLowerCase().includes(f))
+      .slice(0, 20);
+    pointResults.innerHTML = list.length
+      ? list
+          .map(
+            (p) =>
+              `<div class="dp-combo-item" data-point="${esc(p.name)}"><span class="dp-combo-name">${esc(
+                p.point_name || p.name
+              )}</span><span class="dp-combo-sub">${esc(p.phone || "")}</span></div>`
+          )
+          .join("")
+      : `<div class="dp-combo-item dp-text-muted">Không tìm thấy điểm phù hợp.</div>`;
+    pointResults.hidden = false;
+  }
+  renderSelected();
+
+  pointSearch.addEventListener("input", () => renderResults(pointSearch.value));
+  pointResults.addEventListener("click", (e) => {
+    const it = e.target.closest("[data-point]");
+    if (!it) return;
+    selectedPoint = it.dataset.point;
+    pointSearch.value = "";
+    pointResults.hidden = true;
+    renderSelected();
   });
-  let pst;
-  pointSearch.addEventListener("input", () => {
-    clearTimeout(pst);
-    pst = setTimeout(() => renderPoints(pointSearch.value.trim()), 200);
+  selectedBox.addEventListener("click", (e) => {
+    if (e.target.closest("[data-clear]")) {
+      selectedPoint = "";
+      renderSelected();
+      pointSearch.focus();
+    }
   });
 
   // Chọn chương trình bằng nút (radio-card) thay vì dropdown.

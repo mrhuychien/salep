@@ -183,9 +183,24 @@ def add_visit(participation, display_photo, latitude=None, longitude=None, gps_a
     return {"name": doc.name, "visits": len(doc.visits)}
 
 
+def _ensure_workflow():
+    """Tự tạo workflow nếu site chưa có (bench install-app bỏ qua patches) →
+    tránh lỗi 'workflow not found' khi Gửi duyệt/Duyệt/Từ chối."""
+    if frappe.db.exists("Workflow", "Display Participation Approval"):
+        return
+    try:
+        from salep.patches.v0_0_1 import setup_workflow
+
+        setup_workflow.execute()
+        frappe.clear_cache(doctype="Display Participation")
+    except Exception:
+        frappe.log_error(title="salep: tự tạo workflow thất bại")
+
+
 @frappe.whitelist()
 def submit_for_approval(name):
     """Nháp/Từ chối → Chờ duyệt (action 'Gửi duyệt'/'Gửi lại'). NVBH chủ lượt."""
+    _ensure_workflow()
     doc = frappe.get_doc("Display Participation", name)
     doc.check_permission("write")
     action = "Gửi lại" if doc.workflow_state == STATE_REJECTED else "Gửi duyệt"
@@ -197,6 +212,7 @@ def submit_for_approval(name):
 def approve(name):
     """Chờ duyệt → Đã duyệt (action 'Duyệt'). Role-gated Channel Manager."""
     _assert_channel_manager()
+    _ensure_workflow()
     doc = frappe.get_doc("Display Participation", name)
     apply_workflow(doc, "Duyệt")
     return {"name": doc.name, "workflow_state": doc.workflow_state, "approved_by": doc.approved_by}
@@ -206,6 +222,7 @@ def approve(name):
 def reject(name, reject_reason):
     """Chờ duyệt → Từ chối (action 'Từ chối'). Bắt buộc reject_reason. Role-gated."""
     _assert_channel_manager()
+    _ensure_workflow()
     if not reject_reason:
         frappe.throw(_("Phải nhập lý do từ chối."))
     doc = frappe.get_doc("Display Participation", name)
