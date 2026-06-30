@@ -8,7 +8,7 @@ function row(p) {
   const thumb = p.store_photo
     ? `<img class="dp-list-thumb" src="${esc(p.store_photo)}" alt="">`
     : `<div class="dp-list-thumb">${icon("store")}</div>`;
-  return `<a class="dp-list-item" data-go="/participations/new?point=${encodeURIComponent(p.name)}">
+  return `<a class="dp-list-item" data-go="/points/${encodeURIComponent(p.name)}">
     ${thumb}
     <div class="dp-list-body">
       <div class="dp-list-title">${esc(p.point_name || "—")}</div>

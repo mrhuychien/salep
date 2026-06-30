@@ -12,6 +12,7 @@ const VIEWS = {
   home: () => import(withV("./views/home.js")),
   points: () => import(withV("./views/points.js")),
   pointNew: () => import(withV("./views/point-new.js")),
+  pointDetail: () => import(withV("./views/point-detail.js")),
   programs: () => import(withV("./views/programs.js")),
   programDetail: () => import(withV("./views/program-detail.js")),
   participationNew: () => import(withV("./views/participation-new.js")),
@@ -43,6 +44,7 @@ function defineRoutes() {
   route("/", (p) => load("home", p), { tab: "home", chrome: "tabs", title: "Điểm Trưng Bày" });
   route("/points", (p) => load("points", p), { tab: "points", chrome: "tabs", title: "Điểm bán" });
   route("/points/new", (p) => load("pointNew", p), { tab: "points", chrome: "subpage", title: "Tạo điểm" });
+  route("/points/:name", (p) => load("pointDetail", p), { tab: "points", chrome: "subpage", title: "Điểm bán" });
   route("/programs", (p) => load("programs", p), { tab: "programs", chrome: "tabs", title: "Chương trình" });
   route("/programs/:name", (p) => load("programDetail", p), { tab: "programs", chrome: "subpage", title: "Chương trình" });
   route("/participations/new", (p) => load("participationNew", p), { tab: "points", chrome: "subpage", title: "Đăng ký" });

@@ -102,6 +102,26 @@ def create_point(
     return {"name": doc.name, "distributor": doc.distributor}
 
 
+_POINT_EDITABLE = (
+    "point_name", "phone", "address_line", "store_photo",
+    "latitude", "longitude", "gps_accuracy",
+    "bank_account_name", "bank_account_no", "bank_name", "is_active",
+)
+
+
+@frappe.whitelist()
+def update_point(name, **kwargs):
+    """NVBH sửa/cập nhật điểm bán của mình (If Owner). validate_point chống trùng
+    SĐT chạy khi save (loại trừ chính nó)."""
+    doc = frappe.get_doc("Display Point", name)
+    doc.check_permission("write")
+    for field in _POINT_EDITABLE:
+        if field in kwargs and kwargs[field] is not None:
+            doc.set(field, kwargs[field])
+    doc.save()
+    return {"name": doc.name}
+
+
 @frappe.whitelist()
 def point_by_phone(phone):
     """Tra điểm theo SĐT (khoá chống trùng). Trả {name, owned} hoặc None.
