@@ -81,7 +81,8 @@ async function resizeImage(file, maxDim = 1280, quality = 0.8) {
 }
 
 // Upload ảnh (chụp từ camera). Trả {file_url, ...}. is_private=0 để portal hiển thị.
-export async function uploadFile(file, { doctype, docname, fieldname } = {}) {
+// onProgress(pct 0..100): dùng XHR (fetch không báo được tiến trình upload).
+export async function uploadFile(file, { doctype, docname, fieldname, onProgress } = {}) {
   file = await resizeImage(file);
   const fd = new FormData();
   fd.append("file", file, file.name || "photo.jpg");
@@ -91,19 +92,34 @@ export async function uploadFile(file, { doctype, docname, fieldname } = {}) {
   if (docname) fd.append("docname", docname);
   if (fieldname) fd.append("fieldname", fieldname);
 
-  const res = await fetch("/api/method/upload_file", {
-    method: "POST",
-    headers: { "X-Frappe-CSRF-Token": ctx.csrfToken || "" },
-    credentials: "same-origin",
-    body: fd,
-  });
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/method/upload_file");
+    xhr.setRequestHeader("X-Frappe-CSRF-Token", ctx.csrfToken || "");
+    xhr.withCredentials = true;
 
-  let data = {};
-  try {
-    data = await res.json();
-  } catch {
-    /* no body */
-  }
-  if (!res.ok) throw new Error(serverMessage(data) || "Tải ảnh thất bại");
-  return data.message;
+    if (typeof onProgress === "function" && xhr.upload) {
+      onProgress(0);
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+    }
+
+    xhr.onload = () => {
+      let data = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* no body */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        if (typeof onProgress === "function") onProgress(100);
+        resolve(data.message);
+      } else {
+        reject(new Error(serverMessage(data) || `Tải ảnh thất bại (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Lỗi mạng khi tải ảnh"));
+    xhr.send(fd);
+  });
 }

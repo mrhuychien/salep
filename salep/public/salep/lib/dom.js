@@ -54,6 +54,19 @@ export function skeleton(height = 90, count = 3) {
   ).join("");
 }
 
+// Đổ thanh tiến trình vào ô chụp ảnh (dp-uploader); trả hàm onProgress(pct 0..100).
+export function uploaderProgress(uploaderEl) {
+  uploaderEl.innerHTML = `<span class="dp-uploader-icon">${icon("cloud-arrow-up")}</span>
+    <div class="dp-up-progress"><div class="dp-up-bar"></div></div>
+    <span class="dp-uploader-text" data-uptext>Đang xử lý ảnh...</span>`;
+  const bar = uploaderEl.querySelector(".dp-up-bar");
+  const txt = uploaderEl.querySelector("[data-uptext]");
+  return (pct) => {
+    if (bar) bar.style.width = pct + "%";
+    if (txt) txt.textContent = pct < 100 ? `Đang tải ảnh... ${pct}%` : "Đang lưu...";
+  };
+}
+
 // Lấy GPS hiện tại; resolve {latitude, longitude, accuracy} hoặc reject.
 export function getGeolocation(opts = {}) {
   return new Promise((resolve, reject) => {

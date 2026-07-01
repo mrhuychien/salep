@@ -1,4 +1,4 @@
-import { html, icon, getGeolocation, emptyState } from "../lib/dom.js";
+import { html, icon, getGeolocation, emptyState, uploaderProgress } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { renderMap } from "../lib/map.js";
@@ -137,7 +137,8 @@ export async function render({ container, params }) {
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
-      const res = await uploadFile(file, { fieldname: "store_photo" });
+      const onProgress = uploaderProgress(uploader);
+      const res = await uploadFile(file, { fieldname: "store_photo", onProgress });
       photoUrl = res.file_url;
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
     } catch (err) {

@@ -168,7 +168,10 @@ export async function render({ container, params }) {
         if (!gps || gps.latitude == null) {
           throw new Error("Cần bật định vị GPS để chụp ảnh báo cáo. Hãy cho phép quyền vị trí rồi chụp lại.");
         }
-        const up = await uploadFile(file, { fieldname: "visit_photo" });
+        const onProgress = (pct) => {
+          reportBtn.innerHTML = pct < 100 ? `Đang tải ảnh... ${pct}%` : "Đang lưu...";
+        };
+        const up = await uploadFile(file, { fieldname: "visit_photo", onProgress });
         await call("salep.api.participation.add_visit", {
           participation: name,
           display_photo: up.file_url,

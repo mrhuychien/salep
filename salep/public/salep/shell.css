@@ -339,6 +339,10 @@ a.dp-kpi-card:active { transform: scale(0.97); }
   display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
 .dp-uploader-text { font-size: 0.85rem; font-weight: 600; }
 .dp-uploader-preview { width: 100%; max-height: 220px; object-fit: cover; border-radius: var(--dp-radius-sm); }
+/* Thanh tiến trình upload ảnh */
+.dp-up-progress { width: 80%; max-width: 260px; height: 8px; background: var(--dp-surface-2);
+  border-radius: 4px; overflow: hidden; }
+.dp-up-bar { height: 100%; width: 0; background: var(--dp-season-grad); transition: width 0.15s ease; }
 .dp-gps-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; margin-top: 0.6rem;
   background: var(--dp-surface-2); border: 1px solid var(--dp-border); border-radius: 100px; font-size: 0.8rem; font-weight: 600; color: var(--dp-text-2);
   cursor: pointer; font-family: inherit; align-self: flex-start; }

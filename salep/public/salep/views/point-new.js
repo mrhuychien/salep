@@ -1,4 +1,4 @@
-import { html, icon, getGeolocation } from "../lib/dom.js";
+import { html, icon, getGeolocation, uploaderProgress } from "../lib/dom.js";
 import { esc, formatDateTime } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
@@ -133,7 +133,8 @@ export async function render({ container }) {
       }
       Object.assign(gps, pos);
       capturedAt = new Date();
-      const res = await uploadFile(file, { fieldname: "store_photo" }); // resizeImage chạy bên trong
+      const onProgress = uploaderProgress(uploader);
+      const res = await uploadFile(file, { fieldname: "store_photo", onProgress }); // resize bên trong
       photoUrl = res.file_url;
       refreshStamp();
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
