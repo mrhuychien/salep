@@ -9,6 +9,13 @@ export async function render({ container, query }) {
   const preProgram = query && query.program;
   const gps = { latitude: null, longitude: null, accuracy: null };
   let photoUrl = null;
+  // Xin quyền định vị NGAY khi mở form — prompt hiện rõ, không bị camera che lúc chụp.
+  const gpsReady = getGeolocation()
+    .then((p) => {
+      Object.assign(gps, p);
+      return p;
+    })
+    .catch(() => null);
 
   let points = [];
   let programs = [];
@@ -184,8 +191,8 @@ export async function render({ container, query }) {
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
-      // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
-      const pos = await gpsPromise;
+      // BẮT BUỘC GPS: dùng vị trí lấy lúc chụp, hoặc vị trí đã xin quyền khi mở form.
+      const pos = (await gpsPromise) || (await gpsReady);
       if (!pos || pos.latitude == null) {
         throw new Error("Cần bật định vị GPS để chụp ảnh. Hãy cho phép quyền vị trí rồi chụp lại.");
       }

@@ -149,9 +149,11 @@ export async function render({ container, params }) {
   const reportBtn = container.querySelector("[data-report]");
   if (reportBtn) {
     const visitFile = container.querySelector("[data-visitfile]");
+    // Xin quyền định vị NGAY khi mở màn hình báo cáo — prompt hiện rõ, không bị
+    // camera (mở toàn màn hình lúc chụp) che mất khiến người dùng không thấy hỏi.
+    const gpsReady = getGeolocation().catch(() => null);
     let gpsPromise = null;
     reportBtn.addEventListener("click", () => {
-      // Khởi động lấy GPS NGAY trong cử chỉ bấm → prompt quyền dễ hiện trên mobile.
       gpsPromise = getGeolocation().catch(() => null);
       visitFile.click();
     });
@@ -161,8 +163,8 @@ export async function render({ container, params }) {
       reportBtn.disabled = true;
       reportBtn.innerHTML = "Đang tải ảnh...";
       try {
-        // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
-        const gps = await gpsPromise;
+        // BẮT BUỘC GPS: dùng vị trí lấy lúc chụp, hoặc vị trí đã xin quyền khi mở màn.
+        const gps = (await gpsPromise) || (await gpsReady);
         if (!gps || gps.latitude == null) {
           throw new Error("Cần bật định vị GPS để chụp ảnh báo cáo. Hãy cho phép quyền vị trí rồi chụp lại.");
         }

@@ -10,6 +10,14 @@ const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBa
 export async function render({ container }) {
   const gps = { latitude: null, longitude: null, accuracy: null };
   let photoUrl = null;
+  // Xin quyền định vị NGAY khi mở form — prompt hiện rõ trên form, không bị
+  // camera (mở toàn màn hình lúc chụp) che mất khiến người dùng không thấy hỏi.
+  const gpsReady = getGeolocation()
+    .then((p) => {
+      Object.assign(gps, p);
+      return p;
+    })
+    .catch(() => null);
 
   container.innerHTML = html`
     <form class="dp-form-pad" id="dp-pointform">
@@ -118,8 +126,8 @@ export async function render({ container }) {
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
-      // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
-      const pos = await gpsPromise;
+      // BẮT BUỘC GPS: dùng vị trí lấy lúc chụp, hoặc vị trí đã xin quyền khi mở form.
+      const pos = (await gpsPromise) || (await gpsReady);
       if (!pos || pos.latitude == null) {
         throw new Error("Cần bật định vị GPS để chụp ảnh. Hãy cho phép quyền vị trí rồi chụp lại.");
       }
