@@ -164,6 +164,10 @@ def create_participation(
     if existing:
         return {"name": existing.name, "workflow_state": existing.workflow_state, "existed": True}
 
+    # BẮT BUỘC GPS: ảnh trưng bày phải kèm toạ độ (định vị bật khi chụp).
+    if latitude in (None, "") or longitude in (None, ""):
+        frappe.throw(_("Cần bật định vị GPS khi chụp ảnh trưng bày."))
+
     doc = frappe.new_doc("Display Participation")
     doc.update(
         {
@@ -198,6 +202,9 @@ def add_visit(participation, display_photo, latitude=None, longitude=None, gps_a
     _disable_workflow()
     if not display_photo:
         frappe.throw(_("Cần ảnh báo cáo."))
+    # BẮT BUỘC GPS: ảnh báo cáo phải kèm toạ độ (định vị bật khi chụp).
+    if latitude in (None, "") or longitude in (None, ""):
+        frappe.throw(_("Cần bật định vị GPS khi chụp ảnh báo cáo."))
     doc = frappe.get_doc("Display Participation", participation)
     doc.check_permission("write")
     _assert_can_edit(doc)

@@ -2,7 +2,7 @@ import { html, icon, emptyState, getGeolocation } from "../lib/dom.js";
 import { esc, formatDate, formatDateTime, statusMeta } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx, isManager } from "../lib/store.js";
-import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { toastError, toastSuccess } from "../components/toast.js";
 
 function monthlyCard(cov, visits, canReport) {
   const pct = cov.required ? Math.min(100, Math.round((cov.have / cov.required) * 100)) : 0;
@@ -160,9 +160,12 @@ export async function render({ container, params }) {
       if (!file) return;
       reportBtn.disabled = true;
       reportBtn.innerHTML = "Đang tải ảnh...";
-      const gps = (await gpsPromise) || {};
-      if (gps.latitude == null) toast("Không lấy được GPS — ảnh vẫn được lưu (cần HTTPS + cho phép định vị)", "warning");
       try {
+        // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
+        const gps = await gpsPromise;
+        if (!gps || gps.latitude == null) {
+          throw new Error("Cần bật định vị GPS để chụp ảnh báo cáo. Hãy cho phép quyền vị trí rồi chụp lại.");
+        }
         const up = await uploadFile(file, { fieldname: "visit_photo" });
         await call("salep.api.participation.add_visit", {
           participation: name,
@@ -174,6 +177,7 @@ export async function render({ container, params }) {
         toastSuccess("Đã thêm ảnh báo cáo");
         render({ container, params });
       } catch (err) {
+        visitFile.value = ""; // reset để chụp lại
         toastError(err.message);
         reportBtn.disabled = false;
         reportBtn.innerHTML = `${icon("camera")} Chụp ảnh báo cáo tháng này`;

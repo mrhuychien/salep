@@ -44,7 +44,7 @@ export async function render({ container }) {
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
         <span class="dp-field-hint">${icon(
           "circle-info"
-        )} Chụp là tự động lấy GPS + thời gian và nén ảnh tối ưu — không cần thao tác thêm.</span>
+        )} Bắt buộc bật định vị GPS: chụp là tự động lấy GPS + thời gian và nén ảnh tối ưu.</span>
         <button type="button" class="dp-uploader" data-shot>
           <span class="dp-uploader-icon">${icon("camera")}</span>
           <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
@@ -85,39 +85,27 @@ export async function render({ container }) {
   const fileInput = container.querySelector("[data-file]");
   const uploader = container.querySelector("[data-shot]");
 
-  // Tem thông tin dưới ảnh: đã nén + thời gian + GPS (hiển thị thụ động, KHÔNG
-  // phải nút thao tác). Chỉ khi GPS chưa lấy được mới cho chạm để thử lại.
+  // Tem thông tin dưới ảnh: đã nén + thời gian + GPS (hiển thị thụ động).
+  // GPS là BẮT BUỘC nên ảnh đã nhận luôn có toạ độ.
   let capturedAt = null;
   function refreshStamp() {
     if (!capturedAt) {
       photoStamp.hidden = true;
       return;
     }
-    const hasGps = gps.latitude != null;
     photoStamp.hidden = false;
-    photoStamp.classList.toggle("is-ok", hasGps);
-    const parts = ["Đã tối ưu ảnh", formatDateTime(capturedAt)];
-    if (hasGps) {
-      const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
-      parts.push(`${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`);
-    } else {
-      parts.push("chưa có GPS — chạm để lấy lại");
-    }
-    photoStamp.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
-      hasGps ? icon("circle-check", "dp-ok") : ""
-    }`;
+    photoStamp.classList.add("is-ok");
+    const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
+    const parts = [
+      "Đã tối ưu ảnh",
+      formatDateTime(capturedAt),
+      `${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`,
+    ];
+    photoStamp.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${icon(
+      "circle-check",
+      "dp-ok"
+    )}`;
   }
-
-  // Fallback kín đáo: chỉ khi GPS còn thiếu, chạm vào tem để thử lấy lại vị trí.
-  photoStamp.addEventListener("click", async () => {
-    if (gps.latitude != null) return;
-    try {
-      Object.assign(gps, await getGeolocation());
-      refreshStamp();
-    } catch (err) {
-      toastError(err.message);
-    }
-  });
 
   // Bấm chụp: xin quyền + lấy GPS NGAY trong cử chỉ bấm (prompt dễ hiện trên mobile).
   let gpsPromise = null;
@@ -130,19 +118,22 @@ export async function render({ container }) {
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
+      // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
+      const pos = await gpsPromise;
+      if (!pos || pos.latitude == null) {
+        throw new Error("Cần bật định vị GPS để chụp ảnh. Hãy cho phép quyền vị trí rồi chụp lại.");
+      }
+      Object.assign(gps, pos);
+      capturedAt = new Date();
       const res = await uploadFile(file, { fieldname: "store_photo" }); // resizeImage chạy bên trong
       photoUrl = res.file_url;
-      const pos = (await gpsPromise) || {};
-      if (pos.latitude != null) Object.assign(gps, pos);
-      capturedAt = new Date();
-      if (gps.latitude == null)
-        toast("Chưa lấy được GPS (cần HTTPS + cho phép định vị) — chạm dòng dưới ảnh để lấy lại", "warning");
       refreshStamp();
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
         "circle-check",
         "dp-ok"
       )} Đã chọn ảnh — chạm để đổi</span>`;
     } catch (err) {
+      fileInput.value = ""; // reset để chụp lại
       toastError(err.message);
     } finally {
       uploader.classList.remove("is-loading");

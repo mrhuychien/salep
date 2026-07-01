@@ -83,7 +83,12 @@ def create_point(
 ):
     """Tạo điểm bán mới. `distributor` tự fetch từ hồ sơ NVBH (before_insert),
     chống trùng SĐT chạy trong validate. Trả về tên điểm vừa tạo.
+
+    BẮT BUỘC GPS: ảnh cửa hàng phải kèm toạ độ (định vị bật khi chụp).
     """
+    if latitude in (None, "") or longitude in (None, ""):
+        frappe.throw(_("Cần bật định vị GPS khi chụp ảnh để tạo điểm bán."))
+
     doc = frappe.new_doc("Display Point")
     doc.update(
         {

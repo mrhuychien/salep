@@ -184,23 +184,26 @@ export async function render({ container, query }) {
     if (!file) return;
     uploader.classList.add("is-loading");
     try {
+      // BẮT BUỘC GPS: chưa cấp quyền / không lấy được → KHÔNG nhận ảnh.
+      const pos = await gpsPromise;
+      if (!pos || pos.latitude == null) {
+        throw new Error("Cần bật định vị GPS để chụp ảnh. Hãy cho phép quyền vị trí rồi chụp lại.");
+      }
+      Object.assign(gps, pos);
+      capturedAt = new Date();
       const res = await uploadFile(file, { fieldname: "display_photo" }); // resizeImage chạy bên trong
       photoUrl = res.file_url;
-      const pos = (await gpsPromise) || {};
-      if (pos.latitude != null) Object.assign(gps, pos);
-      capturedAt = new Date();
-      if (gps.latitude == null)
-        toast("Không lấy được GPS — ảnh vẫn lưu (cần HTTPS + cho phép định vị)", "warning");
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
       refreshStamp();
     } catch (err) {
+      fileInput.value = ""; // reset để chụp lại
       toastError(err.message);
     } finally {
       uploader.classList.remove("is-loading");
     }
   });
 
-  // Bấm chip = lấy lại GPS thủ công (phòng khi lần chụp đầu bị từ chối quyền).
+  // Chạm chip = lấy lại GPS thủ công (phòng khi lần chụp đầu bị từ chối quyền).
   gpsChip.addEventListener("click", async () => {
     try {
       Object.assign(gps, await getGeolocation());
