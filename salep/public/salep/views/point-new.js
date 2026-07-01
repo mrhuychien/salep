@@ -58,6 +58,7 @@ export async function render({ container }) {
           <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
         </button>
         <input type="file" accept="image/*" capture="environment" hidden data-file />
+        <div class="dp-gps-chip" data-photostamp hidden></div>
       </div>
 
       <div class="dp-fieldset">
@@ -89,29 +90,38 @@ export async function render({ container }) {
 
   const form = container.querySelector("#dp-pointform");
   const gpsChip = container.querySelector("[data-gpschip]");
+  const photoStamp = container.querySelector("[data-photostamp]");
   const fileInput = container.querySelector("[data-file]");
   const uploader = container.querySelector("[data-shot]");
 
-  // Tem GPS + thời gian; dùng chung cho nút GPS thủ công và lúc chụp ảnh.
+  // Tem GPS + thời gian; hiện ở cả mục Định vị và ngay dưới ảnh.
   let capturedAt = null;
-  function refreshGpsChip() {
-    if (gps.latitude == null && !capturedAt) {
-      gpsChip.hidden = true;
+  let photoTaken = false;
+  function fillChip(el, parts) {
+    if (!parts.length) {
+      el.hidden = true;
       return;
     }
-    gpsChip.hidden = false;
-    gpsChip.classList.toggle("is-ok", gps.latitude != null);
+    el.hidden = false;
+    el.classList.toggle("is-ok", gps.latitude != null);
+    el.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
+      gps.latitude != null ? icon("circle-check", "dp-ok") : ""
+    }`;
+  }
+  function stampParts() {
     const parts = [];
     if (capturedAt) parts.push(formatDateTime(capturedAt));
     if (gps.latitude != null) {
       const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
       parts.push(`${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`);
-    } else {
+    } else if (capturedAt) {
       parts.push("chưa có GPS");
     }
-    gpsChip.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
-      gps.latitude != null ? icon("circle-check", "dp-ok") : ""
-    }`;
+    return parts;
+  }
+  function refreshStamps() {
+    fillChip(gpsChip, stampParts());
+    if (photoTaken) fillChip(photoStamp, ["Đã tối ưu ảnh", ...stampParts()]);
   }
 
   container.querySelector("[data-gps]").addEventListener("click", async (e) => {
@@ -120,7 +130,7 @@ export async function render({ container }) {
     try {
       Object.assign(gps, await getGeolocation()); // gọi = xin quyền nếu chưa cấp
       if (!capturedAt) capturedAt = new Date();
-      refreshGpsChip();
+      refreshStamps();
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -144,9 +154,10 @@ export async function render({ container }) {
       const pos = (await gpsPromise) || {};
       if (pos.latitude != null) Object.assign(gps, pos);
       capturedAt = new Date();
+      photoTaken = true;
       if (gps.latitude == null)
         toast("Chưa lấy được GPS — bấm “Lấy vị trí GPS hiện tại” (cần HTTPS + cho phép định vị)", "warning");
-      refreshGpsChip();
+      refreshStamps();
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
         "circle-check",
         "dp-ok"
