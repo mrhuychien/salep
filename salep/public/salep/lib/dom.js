@@ -69,9 +69,9 @@ export function uploaderProgress(uploaderEl) {
 
 // Luồng chụp ảnh BẮT BUỘC GPS, xử lý được iOS (prompt định vị chỉ hiện khi có
 // user gesture, và camera mở toàn màn hình sẽ che prompt nếu mở cùng cử chỉ).
-//   - Prime khi mở: chỉ thành công nếu quyền đã cấp trước đó.
-//   - Lần đầu chưa có quyền: cú chạm đầu XIN QUYỀN (không mở camera) → chạm lại để chụp.
-//   - Đã có quyền: chạm mở camera luôn (1 chạm).
+// KHÔNG gọi định vị khi mở màn (ngoài gesture iOS treo, không prompt).
+//   - Chạm lần 1 (chưa có quyền/fix): XIN QUYỀN + lấy toạ độ (không mở camera).
+//   - Chạm lần 2 (đã có fix): mở camera chụp.
 // onCapture(file, gps) được gọi khi đã có ảnh + toạ độ hợp lệ.
 export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError, setLabel, readyLabel }) {
   gps = gps || { latitude: null, longitude: null, accuracy: null };
@@ -86,14 +86,8 @@ export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError
       if (el) el.textContent = t;
     });
 
-  // Prime: nếu quyền đã cấp, lấy được ngay (không cần gesture) → chụp 1 chạm.
-  getGeolocation()
-    .then((p) => {
-      Object.assign(gps, p);
-      hasFix = true;
-    })
-    .catch(() => {});
-
+  // KHÔNG prime khi mở: getCurrentPosition ngoài user-gesture trên iOS bị treo
+  // (không hiện prompt) và chặn luôn lần gọi trong gesture. Chỉ gọi khi CHẠM.
   uploader.addEventListener("click", async () => {
     if (uploader.classList.contains("is-loading")) return;
     if (!hasFix) {
@@ -104,9 +98,14 @@ export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError
         Object.assign(gps, await getGeolocation());
         hasFix = true;
         setText(readyLabel);
-      } catch {
+      } catch (err) {
         setText("Chạm để bật định vị & chụp ảnh");
-        onError(new Error("Cần cho phép quyền định vị. Hãy bật định vị cho trình duyệt rồi chạm lại."));
+        onError(
+          new Error(
+            "Không lấy được định vị. Hãy bật Vị trí cho trình duyệt (iOS: Cài đặt › Quyền riêng tư › Dịch vụ định vị › Chrome/Safari › Khi dùng app) rồi chạm lại." +
+              (err && err.message ? ` [${err.message}]` : "")
+          )
+        );
       } finally {
         uploader.classList.remove("is-loading");
       }
@@ -145,7 +144,9 @@ export function getGeolocation(opts = {}) {
           accuracy: pos.coords.accuracy,
         }),
       (err) => reject(new Error(err.message || "Không lấy được vị trí")),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0, ...opts }
+      // timeout dài hơn + cho dùng fix gần đây (maximumAge) → sau khi cấp quyền,
+      // toạ độ trả về nhanh, đỡ treo/timeout khi ở trong nhà (GPS yếu).
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000, ...opts }
     );
   });
 }
