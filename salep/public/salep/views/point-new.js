@@ -1,4 +1,4 @@
-import { html, icon, getGeolocation, uploaderProgress } from "../lib/dom.js";
+import { html, icon, uploaderProgress, setupPhotoCapture } from "../lib/dom.js";
 import { esc, formatDateTime } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
@@ -10,14 +10,6 @@ const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBa
 export async function render({ container }) {
   const gps = { latitude: null, longitude: null, accuracy: null };
   let photoUrl = null;
-  // Xin quyền định vị NGAY khi mở form — prompt hiện rõ trên form, không bị
-  // camera (mở toàn màn hình lúc chụp) che mất khiến người dùng không thấy hỏi.
-  const gpsReady = getGeolocation()
-    .then((p) => {
-      Object.assign(gps, p);
-      return p;
-    })
-    .catch(() => null);
 
   container.innerHTML = html`
     <form class="dp-form-pad" id="dp-pointform">
@@ -115,38 +107,30 @@ export async function render({ container }) {
     )}`;
   }
 
-  // Bấm chụp: xin quyền + lấy GPS NGAY trong cử chỉ bấm (prompt dễ hiện trên mobile).
-  let gpsPromise = null;
-  uploader.addEventListener("click", () => {
-    gpsPromise = getGeolocation().catch(() => null);
-    fileInput.click();
-  });
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    uploader.classList.add("is-loading");
-    try {
-      // BẮT BUỘC GPS: dùng vị trí lấy lúc chụp, hoặc vị trí đã xin quyền khi mở form.
-      const pos = (await gpsPromise) || (await gpsReady);
-      if (!pos || pos.latitude == null) {
-        throw new Error("Cần bật định vị GPS để chụp ảnh. Hãy cho phép quyền vị trí rồi chụp lại.");
+  // Chụp ảnh BẮT BUỘC GPS (helper lo phần xin quyền, kể cả iOS).
+  setupPhotoCapture({
+    uploader,
+    fileInput,
+    gps,
+    onError: (err) => toastError(err.message),
+    onCapture: async (file) => {
+      uploader.classList.add("is-loading");
+      try {
+        capturedAt = new Date();
+        const onProgress = uploaderProgress(uploader);
+        const res = await uploadFile(file, { fieldname: "store_photo", onProgress }); // resize bên trong
+        photoUrl = res.file_url;
+        refreshStamp();
+        uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
+          "circle-check",
+          "dp-ok"
+        )} Đã chọn ảnh — chạm để đổi</span>`;
+      } catch (err) {
+        toastError(err.message);
+      } finally {
+        uploader.classList.remove("is-loading");
       }
-      Object.assign(gps, pos);
-      capturedAt = new Date();
-      const onProgress = uploaderProgress(uploader);
-      const res = await uploadFile(file, { fieldname: "store_photo", onProgress }); // resize bên trong
-      photoUrl = res.file_url;
-      refreshStamp();
-      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
-        "circle-check",
-        "dp-ok"
-      )} Đã chọn ảnh — chạm để đổi</span>`;
-    } catch (err) {
-      fileInput.value = ""; // reset để chụp lại
-      toastError(err.message);
-    } finally {
-      uploader.classList.remove("is-loading");
-    }
+    },
   });
 
   const submitLabel = `${icon("floppy-disk")} Lưu & đăng ký`;

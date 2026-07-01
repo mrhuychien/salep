@@ -67,6 +67,72 @@ export function uploaderProgress(uploaderEl) {
   };
 }
 
+// Luồng chụp ảnh BẮT BUỘC GPS, xử lý được iOS (prompt định vị chỉ hiện khi có
+// user gesture, và camera mở toàn màn hình sẽ che prompt nếu mở cùng cử chỉ).
+//   - Prime khi mở: chỉ thành công nếu quyền đã cấp trước đó.
+//   - Lần đầu chưa có quyền: cú chạm đầu XIN QUYỀN (không mở camera) → chạm lại để chụp.
+//   - Đã có quyền: chạm mở camera luôn (1 chạm).
+// onCapture(file, gps) được gọi khi đã có ảnh + toạ độ hợp lệ.
+export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError, setLabel, readyLabel }) {
+  gps = gps || { latitude: null, longitude: null, accuracy: null };
+  readyLabel = readyLabel || "Định vị sẵn sàng — chạm để chụp ảnh";
+  let hasFix = false;
+  let capturePending = null;
+
+  const setText =
+    setLabel ||
+    ((t) => {
+      const el = uploader.querySelector(".dp-uploader-text");
+      if (el) el.textContent = t;
+    });
+
+  // Prime: nếu quyền đã cấp, lấy được ngay (không cần gesture) → chụp 1 chạm.
+  getGeolocation()
+    .then((p) => {
+      Object.assign(gps, p);
+      hasFix = true;
+    })
+    .catch(() => {});
+
+  uploader.addEventListener("click", async () => {
+    if (uploader.classList.contains("is-loading")) return;
+    if (!hasFix) {
+      // Bước xin quyền (chỉ lần đầu khi chưa cấp) — nằm trong chính cử chỉ chạm.
+      uploader.classList.add("is-loading");
+      setText("Đang xin quyền định vị...");
+      try {
+        Object.assign(gps, await getGeolocation());
+        hasFix = true;
+        setText(readyLabel);
+      } catch {
+        setText("Chạm để bật định vị & chụp ảnh");
+        onError(new Error("Cần cho phép quyền định vị. Hãy bật định vị cho trình duyệt rồi chạm lại."));
+      } finally {
+        uploader.classList.remove("is-loading");
+      }
+      return;
+    }
+    // Đã có quyền → mở camera (cử chỉ mới) + lấy lại vị trí mới nhất song song.
+    capturePending = getGeolocation().catch(() => null);
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const pos = (await capturePending) || (gps.latitude != null ? { ...gps } : null);
+    if (!pos || pos.latitude == null) {
+      fileInput.value = "";
+      onError(new Error("Không lấy được GPS. Hãy bật định vị rồi chụp lại."));
+      return;
+    }
+    Object.assign(gps, pos);
+    onCapture(file, gps);
+  });
+
+  return { gps };
+}
+
 // Lấy GPS hiện tại; resolve {latitude, longitude, accuracy} hoặc reject.
 export function getGeolocation(opts = {}) {
   return new Promise((resolve, reject) => {

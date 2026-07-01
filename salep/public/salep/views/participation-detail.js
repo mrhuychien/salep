@@ -1,4 +1,4 @@
-import { html, icon, emptyState, getGeolocation } from "../lib/dom.js";
+import { html, icon, emptyState, setupPhotoCapture } from "../lib/dom.js";
 import { esc, formatDate, formatDateTime, statusMeta } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx, isManager } from "../lib/store.js";
@@ -149,44 +149,40 @@ export async function render({ container, params }) {
   const reportBtn = container.querySelector("[data-report]");
   if (reportBtn) {
     const visitFile = container.querySelector("[data-visitfile]");
-    // Xin quyền định vị NGAY khi mở màn hình báo cáo — prompt hiện rõ, không bị
-    // camera (mở toàn màn hình lúc chụp) che mất khiến người dùng không thấy hỏi.
-    const gpsReady = getGeolocation().catch(() => null);
-    let gpsPromise = null;
-    reportBtn.addEventListener("click", () => {
-      gpsPromise = getGeolocation().catch(() => null);
-      visitFile.click();
-    });
-    visitFile.addEventListener("change", async () => {
-      const file = visitFile.files[0];
-      if (!file) return;
-      reportBtn.disabled = true;
-      reportBtn.innerHTML = "Đang tải ảnh...";
-      try {
-        // BẮT BUỘC GPS: dùng vị trí lấy lúc chụp, hoặc vị trí đã xin quyền khi mở màn.
-        const gps = (await gpsPromise) || (await gpsReady);
-        if (!gps || gps.latitude == null) {
-          throw new Error("Cần bật định vị GPS để chụp ảnh báo cáo. Hãy cho phép quyền vị trí rồi chụp lại.");
-        }
+    const resetBtn = () => {
+      reportBtn.disabled = false;
+      reportBtn.innerHTML = `${icon("camera")} Chụp ảnh báo cáo tháng này`;
+    };
+    // Chụp ảnh báo cáo BẮT BUỘC GPS (helper lo phần xin quyền, kể cả iOS).
+    setupPhotoCapture({
+      uploader: reportBtn,
+      fileInput: visitFile,
+      setLabel: (t) => (reportBtn.innerHTML = esc(t)),
+      onError: (err) => {
+        toastError(err.message);
+        resetBtn();
+      },
+      onCapture: async (file, gps) => {
+        reportBtn.disabled = true;
         const onProgress = (pct) => {
           reportBtn.innerHTML = pct < 100 ? `Đang tải ảnh... ${pct}%` : "Đang lưu...";
         };
-        const up = await uploadFile(file, { fieldname: "visit_photo", onProgress });
-        await call("salep.api.participation.add_visit", {
-          participation: name,
-          display_photo: up.file_url,
-          latitude: gps.latitude,
-          longitude: gps.longitude,
-          gps_accuracy: gps.accuracy,
-        });
-        toastSuccess("Đã thêm ảnh báo cáo");
-        render({ container, params });
-      } catch (err) {
-        visitFile.value = ""; // reset để chụp lại
-        toastError(err.message);
-        reportBtn.disabled = false;
-        reportBtn.innerHTML = `${icon("camera")} Chụp ảnh báo cáo tháng này`;
-      }
+        try {
+          const up = await uploadFile(file, { fieldname: "visit_photo", onProgress });
+          await call("salep.api.participation.add_visit", {
+            participation: name,
+            display_photo: up.file_url,
+            latitude: gps.latitude,
+            longitude: gps.longitude,
+            gps_accuracy: gps.accuracy,
+          });
+          toastSuccess("Đã thêm ảnh báo cáo");
+          render({ container, params });
+        } catch (err) {
+          toastError(err.message);
+          resetBtn();
+        }
+      },
     });
   }
 
