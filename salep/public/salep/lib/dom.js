@@ -93,7 +93,7 @@ export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError
     if (!hasFix) {
       // Bước xin quyền (chỉ lần đầu khi chưa cấp) — nằm trong chính cử chỉ chạm.
       uploader.classList.add("is-loading");
-      setText("Đang xin quyền định vị...");
+      setText("Đang lấy vị trí GPS...");
       try {
         Object.assign(gps, await getGeolocation());
         hasFix = true;
@@ -132,21 +132,50 @@ export function setupPhotoCapture({ uploader, fileInput, gps, onCapture, onError
   return { gps };
 }
 
-// Lấy GPS hiện tại; resolve {latitude, longitude, accuracy} hoặc reject.
-export function getGeolocation(opts = {}) {
+// Một lần gọi getCurrentPosition, kèm "hard guard" tự reject nếu callback không
+// bao giờ chạy (iOS đôi khi không gọi error callback cho định vị chính xác cao).
+function _geoOnce(opts) {
   return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error("Trình duyệt không hỗ trợ định vị"));
+    let done = false;
+    const finish = (fn, arg) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      fn(arg);
+    };
+    const timer = setTimeout(
+      () => finish(reject, Object.assign(new Error("timeout"), { code: 3 })),
+      (opts.timeout || 15000) + 2000
+    );
     navigator.geolocation.getCurrentPosition(
       (pos) =>
-        resolve({
+        finish(resolve, {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
         }),
-      (err) => reject(new Error(err.message || "Không lấy được vị trí")),
-      // timeout dài hơn + cho dùng fix gần đây (maximumAge) → sau khi cấp quyền,
-      // toạ độ trả về nhanh, đỡ treo/timeout khi ở trong nhà (GPS yếu).
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000, ...opts }
+      (err) => finish(reject, err),
+      opts
     );
   });
+}
+
+// Lấy GPS hiện tại; resolve {latitude, longitude, accuracy} hoặc reject.
+// Thử độ chính xác cao trước (nhanh nếu bắt được), timeout thì hạ xuống định vị
+// mạng (wifi/cell) — nhanh, đỡ treo khi ở trong nhà. Không bao giờ treo vô hạn.
+export async function getGeolocation() {
+  if (typeof window !== "undefined" && window.isSecureContext === false) {
+    throw new Error("Trang cần chạy HTTPS mới dùng được định vị.");
+  }
+  if (!navigator.geolocation) throw new Error("Trình duyệt không hỗ trợ định vị");
+  try {
+    return await _geoOnce({ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+  } catch (e) {
+    // Bị chặn quyền (code 1) → không thử lại, báo rõ.
+    if (e && e.code === 1) {
+      throw new Error("Quyền Vị trí đang bị chặn. Hãy bật lại quyền Vị trí cho trình duyệt rồi thử lại.");
+    }
+    // Timeout / không xác định được (code 2,3) → hạ độ chính xác, dùng định vị mạng.
+    return await _geoOnce({ enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 });
+  }
 }
