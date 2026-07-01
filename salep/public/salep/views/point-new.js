@@ -30,6 +30,10 @@ export async function render({ container }) {
             <span class="dp-field-hint">${icon("circle-info")} Dùng để chống trùng điểm</span>
           </div>
           <div class="dp-field">
+            <label class="dp-field-label">Mã số thuế</label>
+            <input class="dp-input" name="tax_code" inputmode="numeric" placeholder="Mã số thuế (nếu có)" />
+          </div>
+          <div class="dp-field">
             <label class="dp-field-label">Địa chỉ <em>*</em></label>
             <textarea class="dp-textarea" name="address_line" required placeholder="Số nhà, đường, phường/xã..."></textarea>
           </div>
@@ -201,6 +205,7 @@ export async function render({ container }) {
       const created = await call("salep.api.point.create_point", {
         point_name: fd.get("point_name"),
         phone: fd.get("phone"),
+        tax_code: fd.get("tax_code"),
         address_line: fd.get("address_line"),
         store_photo: photoUrl,
         latitude: gps.latitude,

@@ -10,6 +10,7 @@
   "point_name",
   "distributor",
   "phone",
+  "tax_code",
   "address_line",
   "gps_section",
   "latitude",
@@ -49,6 +50,12 @@
    "in_list_view": 1,
    "search_index": 1,
    "description": "Khoá chống trùng (validate unique trong controller)"
+  },
+  {
+   "fieldname": "tax_code",
+   "fieldtype": "Data",
+   "label": "Mã số thuế",
+   "description": "Mã số thuế của điểm bán (nếu có)"
   },
   {
    "fieldname": "address_line",

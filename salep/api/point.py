@@ -72,6 +72,7 @@ def create_point(
     point_name,
     phone,
     address_line,
+    tax_code=None,
     store_photo=None,
     latitude=None,
     longitude=None,
@@ -88,6 +89,7 @@ def create_point(
         {
             "point_name": point_name,
             "phone": phone,
+            "tax_code": tax_code,
             "address_line": address_line,
             "store_photo": store_photo,
             "latitude": latitude,
@@ -103,7 +105,7 @@ def create_point(
 
 
 _POINT_EDITABLE = (
-    "point_name", "phone", "address_line", "store_photo",
+    "point_name", "phone", "tax_code", "address_line", "store_photo",
     "latitude", "longitude", "gps_accuracy",
     "bank_account_name", "bank_account_no", "bank_name", "is_active",
 )

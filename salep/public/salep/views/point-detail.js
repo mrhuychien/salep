@@ -43,6 +43,10 @@ export async function render({ container, params }) {
             <input class="dp-input" name="phone" type="tel" required value="${esc(doc.phone || "")}" />
           </div>
           <div class="dp-field">
+            <label class="dp-field-label">Mã số thuế</label>
+            <input class="dp-input" name="tax_code" inputmode="numeric" value="${esc(doc.tax_code || "")}" />
+          </div>
+          <div class="dp-field">
             <label class="dp-field-label">Địa chỉ <em>*</em></label>
             <textarea class="dp-textarea" name="address_line" required>${esc(doc.address_line || "")}</textarea>
           </div>
@@ -156,6 +160,7 @@ export async function render({ container, params }) {
         name,
         point_name: get("point_name"),
         phone: get("phone"),
+        tax_code: get("tax_code"),
         address_line: get("address_line"),
         store_photo: photoUrl,
         latitude: gps.latitude,
