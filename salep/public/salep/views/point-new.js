@@ -41,18 +41,10 @@ export async function render({ container }) {
       </div>
 
       <div class="dp-fieldset">
-        <div class="dp-fieldset-title">Định vị</div>
-        <div class="dp-card">
-          <button type="button" class="dp-btn-outline" data-gps>${icon("location-crosshairs")} Lấy vị trí GPS hiện tại</button>
-          <div class="dp-gps-chip" data-gpschip hidden></div>
-        </div>
-      </div>
-
-      <div class="dp-fieldset">
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
         <span class="dp-field-hint">${icon(
           "circle-info"
-        )} Tự động lấy GPS + thời gian khi chụp, ảnh được nén tối ưu trước khi tải lên.</span>
+        )} Chụp là tự động lấy GPS + thời gian và nén ảnh tối ưu — không cần thao tác thêm.</span>
         <button type="button" class="dp-uploader" data-shot>
           <span class="dp-uploader-icon">${icon("camera")}</span>
           <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
@@ -89,52 +81,41 @@ export async function render({ container }) {
   `;
 
   const form = container.querySelector("#dp-pointform");
-  const gpsChip = container.querySelector("[data-gpschip]");
   const photoStamp = container.querySelector("[data-photostamp]");
   const fileInput = container.querySelector("[data-file]");
   const uploader = container.querySelector("[data-shot]");
 
-  // Tem GPS + thời gian; hiện ở cả mục Định vị và ngay dưới ảnh.
+  // Tem thông tin dưới ảnh: đã nén + thời gian + GPS (hiển thị thụ động, KHÔNG
+  // phải nút thao tác). Chỉ khi GPS chưa lấy được mới cho chạm để thử lại.
   let capturedAt = null;
-  let photoTaken = false;
-  function fillChip(el, parts) {
-    if (!parts.length) {
-      el.hidden = true;
+  function refreshStamp() {
+    if (!capturedAt) {
+      photoStamp.hidden = true;
       return;
     }
-    el.hidden = false;
-    el.classList.toggle("is-ok", gps.latitude != null);
-    el.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
-      gps.latitude != null ? icon("circle-check", "dp-ok") : ""
-    }`;
-  }
-  function stampParts() {
-    const parts = [];
-    if (capturedAt) parts.push(formatDateTime(capturedAt));
-    if (gps.latitude != null) {
+    const hasGps = gps.latitude != null;
+    photoStamp.hidden = false;
+    photoStamp.classList.toggle("is-ok", hasGps);
+    const parts = ["Đã tối ưu ảnh", formatDateTime(capturedAt)];
+    if (hasGps) {
       const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
       parts.push(`${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`);
-    } else if (capturedAt) {
-      parts.push("chưa có GPS");
+    } else {
+      parts.push("chưa có GPS — chạm để lấy lại");
     }
-    return parts;
-  }
-  function refreshStamps() {
-    fillChip(gpsChip, stampParts());
-    if (photoTaken) fillChip(photoStamp, ["Đã tối ưu ảnh", ...stampParts()]);
+    photoStamp.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${
+      hasGps ? icon("circle-check", "dp-ok") : ""
+    }`;
   }
 
-  container.querySelector("[data-gps]").addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    btn.disabled = true;
+  // Fallback kín đáo: chỉ khi GPS còn thiếu, chạm vào tem để thử lấy lại vị trí.
+  photoStamp.addEventListener("click", async () => {
+    if (gps.latitude != null) return;
     try {
-      Object.assign(gps, await getGeolocation()); // gọi = xin quyền nếu chưa cấp
-      if (!capturedAt) capturedAt = new Date();
-      refreshStamps();
+      Object.assign(gps, await getGeolocation());
+      refreshStamp();
     } catch (err) {
       toastError(err.message);
-    } finally {
-      btn.disabled = false;
     }
   });
 
@@ -154,10 +135,9 @@ export async function render({ container }) {
       const pos = (await gpsPromise) || {};
       if (pos.latitude != null) Object.assign(gps, pos);
       capturedAt = new Date();
-      photoTaken = true;
       if (gps.latitude == null)
-        toast("Chưa lấy được GPS — bấm “Lấy vị trí GPS hiện tại” (cần HTTPS + cho phép định vị)", "warning");
-      refreshStamps();
+        toast("Chưa lấy được GPS (cần HTTPS + cho phép định vị) — chạm dòng dưới ảnh để lấy lại", "warning");
+      refreshStamp();
       uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
         "circle-check",
         "dp-ok"
