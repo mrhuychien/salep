@@ -5,6 +5,19 @@
 import frappe
 
 
+def _is_npp(user):
+    """NPP = nhà phân phối. Nhận diện bằng: role phân phối, hoặc là Portal User
+    (tài khoản cổng) của một Customer. Dùng để hiện nút 'Về portal NPP'."""
+    if not user or user in ("Guest", "Administrator"):
+        return False
+    if set(frappe.get_roles(user)) & {"Distributor", "NPP", "Nhà phân phối"}:
+        return True
+    try:
+        return bool(frappe.db.exists("Portal User", {"user": user, "parenttype": "Customer"}))
+    except Exception:
+        return False
+
+
 def get_context(context):
     if frappe.session.user == "Guest":
         frappe.local.flags.redirect_location = "/login?redirect-to=/dp"
@@ -28,6 +41,7 @@ def get_context(context):
     context.dp_is_manager = 1 if roles & {"Channel Manager", "System Manager"} else 0
     context.dp_is_staff = 1 if "Sales Staff" in roles else 0
     context.dp_has_profile = 1 if profile else 0
+    context.dp_is_npp = 1 if _is_npp(frappe.session.user) else 0
 
     # Cache-bust: now() đã làm sạch ký tự để nhúng vào ?v= và import map.
     context.asset_version = frappe.utils.now().replace(" ", "T").replace(":", "-")

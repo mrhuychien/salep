@@ -3,4 +3,5 @@ export const ctx = window.DP_CONTEXT || {};
 
 export const isManager = () => !!ctx.isManager;
 export const isStaff = () => !!ctx.isStaff;
+export const isNpp = () => !!ctx.isNpp;
 export const hasProfile = () => !!ctx.hasProfile;

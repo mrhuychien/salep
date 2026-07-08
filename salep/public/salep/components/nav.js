@@ -73,6 +73,11 @@ export function renderChrome(root) {
     <div class="dp-acct-menu" id="dp-acct-menu" hidden>
       <div class="dp-acct-name">${esc(ctx.fullName)}</div>
       <div class="dp-acct-sub">${esc(ctx.distributor || ctx.user)}</div>
+      ${
+        ctx.isNpp
+          ? `<button class="dp-acct-npp" data-npp><i class="fas fa-store"></i> Về portal NPP</button>`
+          : ""
+      }
       <button class="dp-acct-logout" data-logout><i class="fas fa-right-from-bracket"></i> Đăng xuất</button>
     </div>
 
@@ -129,6 +134,11 @@ function onClick(e) {
     e.preventDefault();
     const m = document.getElementById("dp-acct-menu");
     m.hidden = !m.hidden;
+    return;
+  }
+  if (t.closest("[data-npp]")) {
+    e.preventDefault();
+    window.location.href = "/npp"; // portal NPP là trang riêng → điều hướng nguyên trang
     return;
   }
   if (t.closest("[data-logout]")) {

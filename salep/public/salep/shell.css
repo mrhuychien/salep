@@ -135,6 +135,12 @@ body { margin: 0 !important; background: #f8fafc !important; }
 .dp-acct-menu[hidden] { display: none; }
 .dp-acct-name { font-weight: 700; font-size: 0.92rem; }
 .dp-acct-sub { font-size: 0.78rem; color: var(--dp-text-3); margin-top: 2px; }
+.dp-acct-npp {
+  margin-top: 12px; width: 100%; padding: 9px 10px; border: none; border-radius: 10px;
+  background: var(--dp-season-grad); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.dp-acct-npp:active { transform: scale(0.98); }
 .dp-acct-logout {
   margin-top: 12px; width: 100%; padding: 8px 10px; border: 1px solid var(--dp-border);
   border-radius: 10px; background: var(--dp-surface-2); color: var(--dp-danger);
