@@ -355,6 +355,26 @@ a.dp-kpi-card:active { transform: scale(0.97); }
 .dp-gps-chip.is-ok { background: var(--dp-season-glow); border-color: transparent; color: var(--dp-text); }
 .dp-gps-chip .dp-ok { color: var(--dp-success); }
 
+/* ── Lưới ảnh nhiều tấm (chụp/chọn nhiều) ── */
+.dp-photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.6rem; }
+.dp-photo-cell { position: relative; aspect-ratio: 1; border-radius: var(--dp-radius-sm); overflow: hidden; background: var(--dp-surface-2); }
+.dp-photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-photo-cell.is-loading { display: flex; align-items: center; justify-content: center; border: 2px dashed var(--dp-border); }
+.dp-photo-pct { font-weight: 800; font-size: 0.95rem; color: var(--dp-season-1); }
+.dp-photo-rm { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: rgba(15, 23, 42, 0.6); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; }
+.dp-photo-rm:active { transform: scale(0.92); }
+.dp-photo-badge { position: absolute; left: 4px; bottom: 4px; background: rgba(15, 23, 42, 0.6); color: #fff;
+  font-size: 0.6rem; padding: 1px 5px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px; }
+.dp-photo-add { aspect-ratio: 1; border: 2px dashed var(--dp-border); border-radius: var(--dp-radius-sm); background: var(--dp-surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--dp-text-2);
+  cursor: pointer; font-family: inherit; text-align: center; padding: 4px; }
+.dp-photo-add:hover { border-color: var(--dp-season-1); }
+.dp-photo-add:disabled { opacity: 0.6; }
+.dp-photo-add-ic { width: 38px; height: 38px; border-radius: 50%; background: var(--dp-season-glow); color: var(--dp-season-1);
+  display: flex; align-items: center; justify-content: center; font-size: 1.05rem; }
+.dp-photo-add-tx { font-size: 0.68rem; font-weight: 600; line-height: 1.15; }
+
 /* ── Sticky action bar ──
    Bottom-nav LUÔN hiển thị (kể cả subpage) → actionbar luôn nằm ngay TRÊN nav.
    Bố trí nút theo HÀNG (wrap 2-up) cho gọn chiều cao thanh cố định đáy. */

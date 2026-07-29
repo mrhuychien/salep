@@ -1,15 +1,14 @@
-import { html, icon, uploaderProgress, setupPhotoCapture } from "../lib/dom.js";
-import { esc, formatDateTime } from "../lib/format.js";
-import { call, uploadFile } from "../lib/api.js";
+import { html, icon } from "../lib/dom.js";
+import { esc } from "../lib/format.js";
+import { call } from "../lib/api.js";
 import { ctx } from "../lib/store.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { createPhotoGrid } from "../components/photo-grid.js";
 
 const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBank", "Agribank", "VPBank"];
 
 export async function render({ container }) {
-  const gps = { latitude: null, longitude: null, accuracy: null };
-  let photoUrl = null;
 
   container.innerHTML = html`
     <form class="dp-form-pad" id="dp-pointform">
@@ -44,13 +43,8 @@ export async function render({ container }) {
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
         <span class="dp-field-hint">${icon(
           "circle-info"
-        )} Bắt buộc bật định vị GPS: chụp là tự động lấy GPS + thời gian và nén ảnh tối ưu.</span>
-        <button type="button" class="dp-uploader" data-shot>
-          <span class="dp-uploader-icon">${icon("camera")}</span>
-          <span class="dp-uploader-text">Chụp ảnh mặt tiền cửa hàng</span>
-        </button>
-        <input type="file" accept="image/*" capture="environment" hidden data-file />
-        <div class="dp-gps-chip" data-photostamp hidden></div>
+        )} Bắt buộc bật định vị GPS. Có thể chụp/chọn NHIỀU ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
+        <div id="dp-store-photos"></div>
       </div>
 
       <div class="dp-fieldset">
@@ -81,56 +75,12 @@ export async function render({ container }) {
   `;
 
   const form = container.querySelector("#dp-pointform");
-  const photoStamp = container.querySelector("[data-photostamp]");
-  const fileInput = container.querySelector("[data-file]");
-  const uploader = container.querySelector("[data-shot]");
 
-  // Tem thông tin dưới ảnh: đã nén + thời gian + GPS (hiển thị thụ động).
-  // GPS là BẮT BUỘC nên ảnh đã nhận luôn có toạ độ.
-  let capturedAt = null;
-  function refreshStamp() {
-    if (!capturedAt) {
-      photoStamp.hidden = true;
-      return;
-    }
-    photoStamp.hidden = false;
-    photoStamp.classList.add("is-ok");
-    const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
-    const parts = [
-      "Đã tối ưu ảnh",
-      formatDateTime(capturedAt),
-      `${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}${warn}`,
-    ];
-    photoStamp.innerHTML = `${icon("location-dot")}<span>${esc(parts.join(" · "))}</span>${icon(
-      "circle-check",
-      "dp-ok"
-    )}`;
-  }
-
-  // Chụp ảnh BẮT BUỘC GPS (helper lo phần xin quyền, kể cả iOS).
-  setupPhotoCapture({
-    uploader,
-    fileInput,
-    gps,
+  // Lưới ảnh nhiều tấm (BẮT BUỘC GPS, nén + tiến trình).
+  const photoGrid = createPhotoGrid({
+    mount: container.querySelector("#dp-store-photos"),
+    fieldname: "store_photo",
     onError: (err) => toastError(err.message),
-    onCapture: async (file) => {
-      uploader.classList.add("is-loading");
-      try {
-        capturedAt = new Date();
-        const onProgress = uploaderProgress(uploader);
-        const res = await uploadFile(file, { fieldname: "store_photo", onProgress }); // resize bên trong
-        photoUrl = res.file_url;
-        refreshStamp();
-        uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt=""><span class="dp-uploader-text">${icon(
-          "circle-check",
-          "dp-ok"
-        )} Đã chọn ảnh — chạm để đổi</span>`;
-      } catch (err) {
-        toastError(err.message);
-      } finally {
-        uploader.classList.remove("is-loading");
-      }
-    },
   });
 
   const submitLabel = `${icon("floppy-disk")} Lưu & đăng ký`;
@@ -167,12 +117,14 @@ export async function render({ container }) {
       return reset(btn);
     }
 
-    // 2) Tạo điểm mới (cần đủ thông tin + ảnh).
+    // 2) Tạo điểm mới (cần đủ thông tin + ít nhất 1 ảnh có GPS).
     if (!form.reportValidity()) return reset(btn);
-    if (!photoUrl) {
-      toast("Cần chụp ảnh cửa hàng", "error");
+    const photos = photoGrid.getPhotos();
+    if (!photos.length) {
+      toast("Cần chụp/chọn ít nhất 1 ảnh cửa hàng", "error");
       return reset(btn);
     }
+    const fix = photoGrid.firstFix() || {};
 
     btn.innerHTML = "Đang lưu...";
     const fd = new FormData(form);
@@ -182,10 +134,11 @@ export async function render({ container }) {
         phone: fd.get("phone"),
         tax_code: fd.get("tax_code"),
         address_line: fd.get("address_line"),
-        store_photo: photoUrl,
-        latitude: gps.latitude,
-        longitude: gps.longitude,
-        gps_accuracy: gps.accuracy,
+        store_photo: photos[0].image,
+        photos: JSON.stringify(photos),
+        latitude: fix.latitude,
+        longitude: fix.longitude,
+        gps_accuracy: fix.accuracy,
         bank_account_name: fd.get("bank_account_name"),
         bank_account_no: fd.get("bank_account_no"),
         bank_name: fd.get("bank_name"),

@@ -1,10 +1,11 @@
-import { html, icon, getGeolocation, emptyState, uploaderProgress } from "../lib/dom.js";
+import { html, icon, getGeolocation, emptyState } from "../lib/dom.js";
 import { esc } from "../lib/format.js";
-import { call, uploadFile } from "../lib/api.js";
+import { call } from "../lib/api.js";
 import { renderMap } from "../lib/map.js";
 import { setHeaderTitle } from "../components/nav.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { createPhotoGrid } from "../components/photo-grid.js";
 
 const BANKS = ["Vietcombank", "Techcombank", "MB Bank", "ACB", "BIDV", "VietinBank", "Agribank", "VPBank"];
 
@@ -20,8 +21,14 @@ export async function render({ container, params }) {
   if (doc.point_name) setHeaderTitle(doc.point_name);
 
   const gps = { latitude: doc.latitude, longitude: doc.longitude, accuracy: doc.gps_accuracy };
-  let photoUrl = doc.store_photo;
   const hasGps = gps.latitude != null && gps.longitude != null;
+  // Ảnh khởi tạo: danh sách nhiều ảnh nếu có, ngược lại fallback ảnh bìa đơn.
+  const initialPhotos =
+    doc.store_photos && doc.store_photos.length
+      ? doc.store_photos
+      : doc.store_photo
+      ? [{ image: doc.store_photo, latitude: doc.latitude, longitude: doc.longitude, gps_accuracy: doc.gps_accuracy }]
+      : [];
 
   container.innerHTML = html`
     <div class="dp-form-pad">
@@ -64,16 +71,9 @@ export async function render({ container, params }) {
       </div>
 
       <div class="dp-fieldset">
-        <div class="dp-fieldset-title">Ảnh cửa hàng</div>
-        <button type="button" class="dp-uploader" data-shot>
-          ${
-            photoUrl
-              ? `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`
-              : `<span class="dp-uploader-icon">${icon("camera")}</span><span class="dp-uploader-text">Chụp ảnh</span>`
-          }
-        </button>
-        <span class="dp-field-hint">${icon("camera")} Chạm ảnh để chụp lại</span>
-        <input type="file" accept="image/*" capture="environment" hidden data-file />
+        <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
+        <span class="dp-field-hint">${icon("images")} Có thể thêm/xoá nhiều ảnh — ảnh đầu là ảnh đại diện.</span>
+        <div id="dp-store-photos"></div>
       </div>
 
       <div class="dp-fieldset">
@@ -112,8 +112,14 @@ export async function render({ container, params }) {
   const form = container;
   const gpsChip = container.querySelector("[data-gpschip]");
   const gpsText = container.querySelector("[data-gpstext]");
-  const fileInput = container.querySelector("[data-file]");
-  const uploader = container.querySelector("[data-shot]");
+
+  // Lưới ảnh nhiều tấm (thêm/xoá).
+  const photoGrid = createPhotoGrid({
+    mount: container.querySelector("#dp-store-photos"),
+    fieldname: "store_photo",
+    initial: initialPhotos,
+    onError: (err) => toastError(err.message),
+  });
 
   renderMap(container.querySelector("#dp-map"), [
     { lat: gps.latitude, lng: gps.longitude, title: doc.point_name, sub: doc.phone },
@@ -131,28 +137,13 @@ export async function render({ container, params }) {
     }
   });
 
-  uploader.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    uploader.classList.add("is-loading");
-    try {
-      const onProgress = uploaderProgress(uploader);
-      const res = await uploadFile(file, { fieldname: "store_photo", onProgress });
-      photoUrl = res.file_url;
-      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
-    } catch (err) {
-      toastError(err.message);
-    } finally {
-      uploader.classList.remove("is-loading");
-    }
-  });
-
   container.querySelector("[data-save]").addEventListener("click", async (e) => {
     const get = (n) => (form.querySelector(`[name="${n}"]`).value || "").trim();
     if (!get("point_name") || !get("phone") || !get("address_line")) {
       return toast("Cần điền tên, SĐT và địa chỉ", "error");
     }
+    const photos = photoGrid.getPhotos();
+    if (!photos.length) return toast("Cần ít nhất 1 ảnh cửa hàng", "error");
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.innerHTML = "Đang lưu...";
@@ -163,7 +154,8 @@ export async function render({ container, params }) {
         phone: get("phone"),
         tax_code: get("tax_code"),
         address_line: get("address_line"),
-        store_photo: photoUrl,
+        store_photo: photos[0].image,
+        photos: JSON.stringify(photos),
         latitude: gps.latitude,
         longitude: gps.longitude,
         gps_accuracy: gps.accuracy,

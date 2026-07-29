@@ -74,6 +74,25 @@ function timeline(events) {
   </div>`;
 }
 
+function photoGallery(doc) {
+  const list = (
+    doc.display_photos && doc.display_photos.length
+      ? doc.display_photos.map((p) => p.image)
+      : doc.display_photo
+      ? [doc.display_photo]
+      : []
+  ).filter(Boolean);
+  if (!list.length) return "";
+  return `<div class="dp-visit-grid">${list
+    .map(
+      (url) =>
+        `<div class="dp-visit-cell" data-zoom="${esc(url)}" data-caption="Ảnh đăng ký"><img src="${esc(
+          url
+        )}" alt=""></div>`
+    )
+    .join("")}</div>`;
+}
+
 export async function render({ container, params }) {
   const name = params.name;
   let data;
@@ -123,13 +142,7 @@ export async function render({ container, params }) {
       <span class="dp-sb-time">Cập nhật: ${esc(formatDateTime(doc.modified))}</span>
     </div>
     ${reject}
-    ${
-      doc.display_photo
-        ? `<div class="dp-detail-photo"><img src="${esc(doc.display_photo)}" data-zoom="${esc(
-            doc.display_photo
-          )}" data-caption="Ảnh đăng ký" alt=""></div>`
-        : ""
-    }
+    ${photoGallery(doc)}
 
     ${infoCard("Thông tin điểm bán", [
       { icon: "store", value: pt.point_name, sub: pt.distributor ? "NPP: " + pt.distributor : "" },

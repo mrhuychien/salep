@@ -1,8 +1,9 @@
 import { html, icon, getGeolocation, emptyState } from "../lib/dom.js";
 import { esc, statusBadge } from "../lib/format.js";
-import { call, uploadFile } from "../lib/api.js";
+import { call } from "../lib/api.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { createPhotoGrid } from "../components/photo-grid.js";
 
 const LOCKED_STATES = ["Chờ duyệt", "Đã duyệt"];
 
@@ -31,8 +32,14 @@ export async function render({ container, params }) {
     longitude: doc.longitude,
     gps_accuracy: doc.gps_accuracy,
   };
-  let photoUrl = doc.display_photo;
   const gps = { latitude: doc.latitude, longitude: doc.longitude, accuracy: doc.gps_accuracy };
+  const initialPhotos =
+    doc.display_photos && doc.display_photos.length
+      ? doc.display_photos
+      : doc.display_photo
+      ? [{ image: doc.display_photo, latitude: doc.latitude, longitude: doc.longitude, gps_accuracy: doc.gps_accuracy }]
+      : [];
+  const initialImages = initialPhotos.map((p) => p.image).join("|");
 
   const ensure = (list, val, label) =>
     val && !list.some((x) => x.name === val) ? [{ name: val, [label]: val }, ...list] : list;
@@ -72,15 +79,8 @@ export async function render({ container, params }) {
 
       <div class="dp-field">
         <label class="dp-field-label">Ảnh trưng bày</label>
-        <button type="button" class="dp-uploader" data-shot>
-          ${
-            photoUrl
-              ? `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`
-              : `<span class="dp-uploader-icon">${icon("camera")}</span><span class="dp-uploader-text">Chụp ảnh</span>`
-          }
-        </button>
-        <span class="dp-field-hint">${icon("camera")} Chạm ảnh để chụp lại</span>
-        <input type="file" accept="image/*" capture="environment" hidden data-file />
+        <span class="dp-field-hint">${icon("images")} Có thể thêm/xoá nhiều ảnh — ảnh đầu là ảnh đại diện.</span>
+        <div id="dp-display-photos"></div>
         <button type="button" class="dp-gps-chip${hasGps ? " is-ok" : ""}" data-gps>${icon(
           "location-dot"
         )}<span data-gpstext>${esc(gpsLabel)}</span></button>
@@ -93,11 +93,16 @@ export async function render({ container, params }) {
     </div>
   `;
 
-  const fileInput = container.querySelector("[data-file]");
-  const uploader = container.querySelector("[data-shot]");
   const gpsText = container.querySelector("[data-gpstext]");
   const pointSel = container.querySelector("#dp-point");
   const programSel = container.querySelector("#dp-program");
+
+  const photoGrid = createPhotoGrid({
+    mount: container.querySelector("#dp-display-photos"),
+    fieldname: "display_photo",
+    initial: initialPhotos,
+    onError: (err) => toastError(err.message),
+  });
 
   container.querySelector("[data-gps]").addEventListener("click", async () => {
     try {
@@ -111,22 +116,6 @@ export async function render({ container, params }) {
     }
   });
 
-  uploader.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    uploader.classList.add("is-loading");
-    try {
-      const res = await uploadFile(file, { fieldname: "display_photo" });
-      photoUrl = res.file_url;
-      uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
-    } catch (err) {
-      toastError(err.message);
-    } finally {
-      uploader.classList.remove("is-loading");
-    }
-  });
-
   container.querySelector("[data-save]").addEventListener("click", async (e) => {
     const payload = { name };
     if (!lockLinks) {
@@ -134,7 +123,12 @@ export async function render({ container, params }) {
       if (programSel.value && programSel.value !== initial.promotion_program)
         payload.promotion_program = programSel.value;
     }
-    if (photoUrl && photoUrl !== initial.display_photo) payload.display_photo = photoUrl;
+    const photos = photoGrid.getPhotos();
+    if (!photos.length) return toast("Cần ít nhất 1 ảnh trưng bày", "error");
+    if (photos.map((p) => p.image).join("|") !== initialImages) {
+      payload.photos = JSON.stringify(photos);
+      payload.display_photo = photos[0].image;
+    }
     if (gps.latitude !== initial.latitude) payload.latitude = gps.latitude;
     if (gps.longitude !== initial.longitude) payload.longitude = gps.longitude;
     if (gps.accuracy !== initial.gps_accuracy) payload.gps_accuracy = gps.accuracy;

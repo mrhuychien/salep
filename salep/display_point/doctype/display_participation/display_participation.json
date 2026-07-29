@@ -14,6 +14,7 @@
   "subject",
   "display_section",
   "display_photo",
+  "display_photos",
   "gps_section",
   "latitude",
   "longitude",
@@ -81,9 +82,15 @@
   {
    "fieldname": "display_photo",
    "fieldtype": "Attach Image",
-   "label": "Ảnh trưng bày (riêng)",
+   "label": "Ảnh trưng bày (ảnh bìa)",
    "reqd": 1,
-   "description": "Ảnh của đợt chương trình này"
+   "description": "Ảnh đại diện = ảnh đầu tiên trong danh sách ảnh trưng bày"
+  },
+  {
+   "fieldname": "display_photos",
+   "fieldtype": "Table",
+   "label": "Ảnh trưng bày (nhiều ảnh)",
+   "options": "Display Photo"
   },
   {
    "fieldname": "gps_section",

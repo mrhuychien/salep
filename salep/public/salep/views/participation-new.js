@@ -1,14 +1,13 @@
-import { html, icon, getGeolocation, uploaderProgress, setupPhotoCapture } from "../lib/dom.js";
-import { esc, formatDate, formatDateTime } from "../lib/format.js";
-import { call, uploadFile } from "../lib/api.js";
+import { html, icon } from "../lib/dom.js";
+import { esc, formatDate } from "../lib/format.js";
+import { call } from "../lib/api.js";
 import { navigate } from "../lib/router.js";
 import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { createPhotoGrid } from "../components/photo-grid.js";
 
 export async function render({ container, query }) {
   const prePoint = query && query.point;
   const preProgram = query && query.program;
-  const gps = { latitude: null, longitude: null, accuracy: null };
-  let photoUrl = null;
 
   let points = [];
   let programs = [];
@@ -62,13 +61,8 @@ export async function render({ container, query }) {
 
       <div class="dp-field">
         <label class="dp-field-label">Ảnh trưng bày đợt này <em>*</em></label>
-        <span class="dp-field-hint">Chụp ảnh cách trưng bày tại cửa hàng — tự động lấy GPS + thời gian, ảnh được nén tối ưu trước khi tải lên.</span>
-        <button type="button" class="dp-uploader" data-shot>
-          <span class="dp-uploader-icon">${icon("camera")}</span>
-          <span class="dp-uploader-text">Chụp ảnh</span>
-        </button>
-        <input type="file" accept="image/*" capture="environment" hidden data-file />
-        <button type="button" class="dp-gps-chip" data-gps>${icon("location-dot")}<span data-gpstext>Tự động lấy GPS + thời gian khi chụp</span></button>
+        <span class="dp-field-hint">Bắt buộc bật định vị GPS. Có thể chụp/chọn NHIỀU ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
+        <div id="dp-display-photos"></div>
       </div>
     </div>
 
@@ -78,9 +72,12 @@ export async function render({ container, query }) {
     </div>
   `;
 
-  const fileInput = container.querySelector("[data-file]");
-  const uploader = container.querySelector("[data-shot]");
-  const gpsText = container.querySelector("[data-gpstext]");
+  // Lưới ảnh nhiều tấm (BẮT BUỘC GPS, nén + tiến trình).
+  const photoGrid = createPhotoGrid({
+    mount: container.querySelector("#dp-display-photos"),
+    fieldname: "display_photo",
+    onError: (err) => toastError(err.message),
+  });
 
   // Chọn điểm bán: combobox gọn — gõ để lọc, chọn xong thu lại còn 1 thẻ.
   let selectedPoint = prePoint || "";
@@ -159,60 +156,14 @@ export async function render({ container, query }) {
     });
   }
 
-  // Tem GPS + thời gian gắn vào ảnh; tự cập nhật khi chụp xong.
-  let capturedAt = null;
-  const gpsChip = container.querySelector("[data-gps]");
-  function refreshStamp() {
-    const parts = [];
-    if (capturedAt) parts.push(formatDateTime(capturedAt));
-    if (gps.latitude != null) {
-      const warn = gps.accuracy > 100 ? ` ⚠${Math.round(gps.accuracy)}m` : "";
-      parts.push(`${gps.latitude.toFixed(5)}, ${gps.longitude.toFixed(5)}${warn}`);
-    }
-    gpsText.textContent = parts.join(" · ") || "Tự động lấy GPS + thời gian khi chụp";
-    gpsChip.classList.toggle("is-ok", gps.latitude != null);
-  }
-
-  // Chụp ảnh BẮT BUỘC GPS (helper lo phần xin quyền, kể cả iOS).
-  setupPhotoCapture({
-    uploader,
-    fileInput,
-    gps,
-    onError: (err) => toastError(err.message),
-    onCapture: async (file) => {
-      uploader.classList.add("is-loading");
-      try {
-        capturedAt = new Date();
-        const onProgress = uploaderProgress(uploader);
-        const res = await uploadFile(file, { fieldname: "display_photo", onProgress }); // resize bên trong
-        photoUrl = res.file_url;
-        uploader.innerHTML = `<img class="dp-uploader-preview" src="${esc(photoUrl)}" alt="">`;
-        refreshStamp();
-      } catch (err) {
-        toastError(err.message);
-      } finally {
-        uploader.classList.remove("is-loading");
-      }
-    },
-  });
-
-  // Chạm chip = lấy lại GPS thủ công (phòng khi lần chụp đầu bị từ chối quyền).
-  gpsChip.addEventListener("click", async () => {
-    try {
-      Object.assign(gps, await getGeolocation());
-      if (!capturedAt) capturedAt = new Date();
-      refreshStamp();
-    } catch (err) {
-      toastError(err.message);
-    }
-  });
-
   let createdName = null; // tạo MỘT lần — tránh trùng khi bấm lại sau lỗi submit
   let alreadyExisted = false;
   async function persist(submit) {
     if (!selectedPoint) return toast("Chọn điểm bán", "error");
     if (!selectedProgram) return toast("Chọn chương trình", "error");
-    if (!photoUrl) return toast("Cần chụp ảnh trưng bày", "error");
+    const photos = photoGrid.getPhotos();
+    if (!photos.length) return toast("Cần chụp/chọn ít nhất 1 ảnh trưng bày", "error");
+    const fix = photoGrid.firstFix() || {};
 
     const btns = container.querySelectorAll("[data-act]");
     btns.forEach((b) => (b.disabled = true));
@@ -223,10 +174,11 @@ export async function render({ container, query }) {
         const created = await call("salep.api.participation.create_participation", {
           display_point: selectedPoint,
           promotion_program: selectedProgram,
-          display_photo: photoUrl,
-          latitude: gps.latitude,
-          longitude: gps.longitude,
-          gps_accuracy: gps.accuracy,
+          display_photo: photos[0].image,
+          photos: JSON.stringify(photos),
+          latitude: fix.latitude,
+          longitude: fix.longitude,
+          gps_accuracy: fix.accuracy,
         });
         createdName = created.name;
         alreadyExisted = !!created.existed;

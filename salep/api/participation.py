@@ -142,15 +142,19 @@ def _assert_owns_point(point):
 def create_participation(
     display_point,
     promotion_program,
-    display_photo,
+    display_photo=None,
+    photos=None,
     latitude=None,
     longitude=None,
     gps_accuracy=None,
 ):
     """NVBH đăng ký lượt tham gia (trạng thái Nháp). `distributor` fetch_from điểm bán.
 
-    Ảnh đăng ký = ảnh báo cáo tháng đầu (visit #1) để tính độ phủ theo tháng.
+    `photos`: nhiều ảnh trưng bày (mỗi ảnh kèm GPS). Ảnh đầu = ảnh bìa (display_photo)
+    và cũng là ảnh báo cáo tháng đầu (visit #1) để tính độ phủ theo tháng.
     """
+    from salep.api.point import _parse_photos
+
     _disable_workflow()
     _assert_owns_point(display_point)
 
@@ -164,6 +168,16 @@ def create_participation(
     if existing:
         return {"name": existing.name, "workflow_state": existing.workflow_state, "existed": True}
 
+    photo_rows = _parse_photos(photos)
+    # Toạ độ lượt = toạ độ ảnh đầu nếu client không gửi riêng.
+    if photo_rows and latitude in (None, ""):
+        latitude = photo_rows[0].get("latitude")
+        longitude = photo_rows[0].get("longitude")
+        gps_accuracy = photo_rows[0].get("gps_accuracy")
+    cover = photo_rows[0]["image"] if photo_rows else display_photo
+    if not cover:
+        frappe.throw(_("Cần ít nhất một ảnh trưng bày."))
+
     # BẮT BUỘC GPS: ảnh trưng bày phải kèm toạ độ (định vị bật khi chụp).
     if latitude in (None, "") or longitude in (None, ""):
         frappe.throw(_("Cần bật định vị GPS khi chụp ảnh trưng bày."))
@@ -173,7 +187,7 @@ def create_participation(
         {
             "display_point": display_point,
             "promotion_program": promotion_program,
-            "display_photo": display_photo,
+            "display_photo": cover,
             "latitude": latitude,
             "longitude": longitude,
             "gps_accuracy": gps_accuracy,
@@ -181,10 +195,21 @@ def create_participation(
         }
     )
     now = now_datetime()
+    for r in photo_rows:
+        doc.append(
+            "display_photos",
+            {
+                "image": r["image"],
+                "latitude": r.get("latitude"),
+                "longitude": r.get("longitude"),
+                "gps_accuracy": r.get("gps_accuracy"),
+                "captured_on": now,
+            },
+        )
     doc.append(
         "visits",
         {
-            "visit_photo": display_photo,
+            "visit_photo": cover,
             "captured_on": now,
             "period": now.strftime("%Y-%m"),
             "latitude": flt(latitude) or None,
@@ -347,6 +372,14 @@ def update_participation(name, **kwargs):
                 _assert_owns_point(value)  # chống bind sang điểm của NVBH khác
             doc.set(field, value)
             changed = True
+
+    # Nhiều ảnh trưng bày: nếu client gửi `photos` → thay toàn bộ + đặt ảnh bìa.
+    from salep.api.point import _apply_photos, _parse_photos
+
+    photo_rows = _parse_photos(kwargs.get("photos"))
+    if photo_rows:
+        _apply_photos(doc, "display_photos", photo_rows, "display_photo")
+        changed = True
 
     if not changed:
         return {"name": doc.name, "workflow_state": doc.workflow_state, "changed": False}

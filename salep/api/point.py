@@ -67,6 +67,59 @@ def set_distributor(doc, method=None):
 # ---------------------------------------------------------------------------
 # Whitelisted API (portal NVBH gọi)
 # ---------------------------------------------------------------------------
+def _parse_photos(photos):
+    """Chuẩn hoá danh sách ảnh (JSON string hoặc list) → [{image, lat, lng, acc}].
+    Bỏ phần tử không có ảnh. Dùng chung cho create/update point + participation."""
+    import json
+
+    if not photos:
+        return []
+    if isinstance(photos, str):
+        try:
+            photos = json.loads(photos)
+        except Exception:
+            return []
+    out = []
+    for p in photos or []:
+        if not isinstance(p, dict):
+            continue
+        img = p.get("image") or p.get("file_url")
+        if not img:
+            continue
+        out.append(
+            {
+                "image": img,
+                "latitude": p.get("latitude"),
+                "longitude": p.get("longitude"),
+                "gps_accuracy": p.get("gps_accuracy"),
+            }
+        )
+    return out
+
+
+def _apply_photos(doc, table_field, photo_rows, cover_field):
+    """Đổ danh sách ảnh vào bảng con `table_field`, đặt ảnh bìa (`cover_field`) =
+    ảnh đầu, đóng dấu captured_on = giờ máy chủ."""
+    from frappe.utils import now_datetime
+
+    if not photo_rows:
+        return
+    now = now_datetime()
+    doc.set(table_field, [])
+    for r in photo_rows:
+        doc.append(
+            table_field,
+            {
+                "image": r["image"],
+                "latitude": r.get("latitude"),
+                "longitude": r.get("longitude"),
+                "gps_accuracy": r.get("gps_accuracy"),
+                "captured_on": now,
+            },
+        )
+    doc.set(cover_field, photo_rows[0]["image"])
+
+
 @frappe.whitelist()
 def create_point(
     point_name,
@@ -74,6 +127,7 @@ def create_point(
     address_line,
     tax_code=None,
     store_photo=None,
+    photos=None,
     latitude=None,
     longitude=None,
     gps_accuracy=None,
@@ -84,10 +138,19 @@ def create_point(
     """Tạo điểm bán mới. `distributor` tự fetch từ hồ sơ NVBH (before_insert),
     chống trùng SĐT chạy trong validate. Trả về tên điểm vừa tạo.
 
+    `photos`: danh sách nhiều ảnh (mỗi ảnh kèm GPS). Ảnh đầu = ảnh bìa (store_photo).
     BẮT BUỘC GPS: ảnh cửa hàng phải kèm toạ độ (định vị bật khi chụp).
     """
+    photo_rows = _parse_photos(photos)
+    # Toạ độ điểm = toạ độ ảnh đầu nếu client không gửi riêng.
+    if photo_rows and latitude in (None, ""):
+        latitude = photo_rows[0].get("latitude")
+        longitude = photo_rows[0].get("longitude")
+        gps_accuracy = photo_rows[0].get("gps_accuracy")
     if latitude in (None, "") or longitude in (None, ""):
         frappe.throw(_("Cần bật định vị GPS khi chụp ảnh để tạo điểm bán."))
+
+    cover = photo_rows[0]["image"] if photo_rows else store_photo
 
     doc = frappe.new_doc("Display Point")
     doc.update(
@@ -96,7 +159,7 @@ def create_point(
             "phone": phone,
             "tax_code": tax_code,
             "address_line": address_line,
-            "store_photo": store_photo,
+            "store_photo": cover,
             "latitude": latitude,
             "longitude": longitude,
             "gps_accuracy": gps_accuracy,
@@ -105,6 +168,7 @@ def create_point(
             "bank_name": bank_name,
         }
     )
+    _apply_photos(doc, "store_photos", photo_rows, "store_photo")
     doc.insert()  # insert() tự enforce quyền Create + If Owner
     return {"name": doc.name, "distributor": doc.distributor}
 
@@ -117,14 +181,17 @@ _POINT_EDITABLE = (
 
 
 @frappe.whitelist()
-def update_point(name, **kwargs):
+def update_point(name, photos=None, **kwargs):
     """NVBH sửa/cập nhật điểm bán của mình (If Owner). validate_point chống trùng
-    SĐT chạy khi save (loại trừ chính nó)."""
+    SĐT chạy khi save (loại trừ chính nó). `photos` (nếu gửi) thay toàn bộ ảnh."""
     doc = frappe.get_doc("Display Point", name)
     doc.check_permission("write")
     for field in _POINT_EDITABLE:
         if field in kwargs and kwargs[field] is not None:
             doc.set(field, kwargs[field])
+    photo_rows = _parse_photos(photos)
+    if photo_rows:
+        _apply_photos(doc, "store_photos", photo_rows, "store_photo")
     doc.save()
     return {"name": doc.name}
 

@@ -17,6 +17,7 @@
   "longitude",
   "gps_accuracy",
   "store_photo",
+  "store_photos",
   "bank_section",
   "bank_account_name",
   "bank_account_no",
@@ -89,9 +90,15 @@
   {
    "fieldname": "store_photo",
    "fieldtype": "Attach Image",
-   "label": "Ảnh cửa hàng (chung)",
+   "label": "Ảnh cửa hàng (ảnh bìa)",
    "reqd": 1,
-   "description": "Dùng lại qua các chương trình"
+   "description": "Ảnh đại diện = ảnh đầu tiên trong danh sách ảnh cửa hàng"
+  },
+  {
+   "fieldname": "store_photos",
+   "fieldtype": "Table",
+   "label": "Ảnh cửa hàng (nhiều ảnh)",
+   "options": "Display Photo"
   },
   {
    "fieldname": "bank_section",
