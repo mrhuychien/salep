@@ -43,7 +43,7 @@ export async function render({ container }) {
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
         <span class="dp-field-hint">${icon(
           "circle-info"
-        )} Bắt buộc bật định vị GPS. Có thể chụp/chọn NHIỀU ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
+        )} Bắt buộc bật định vị GPS, chỉ CHỤP trực tiếp bằng camera. Có thể chụp nhiều ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
         <div id="dp-store-photos"></div>
       </div>
 

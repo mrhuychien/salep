@@ -61,7 +61,7 @@ export async function render({ container, query }) {
 
       <div class="dp-field">
         <label class="dp-field-label">Ảnh trưng bày đợt này <em>*</em></label>
-        <span class="dp-field-hint">Bắt buộc bật định vị GPS. Có thể chụp/chọn NHIỀU ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
+        <span class="dp-field-hint">Bắt buộc bật định vị GPS, chỉ CHỤP trực tiếp bằng camera. Có thể chụp nhiều ảnh — mỗi ảnh tự gắn GPS + thời gian và nén tối ưu.</span>
         <div id="dp-display-photos"></div>
       </div>
     </div>

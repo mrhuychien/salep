@@ -72,7 +72,7 @@ export async function render({ container, params }) {
 
       <div class="dp-fieldset">
         <div class="dp-fieldset-title">Ảnh cửa hàng <em class="dp-req">*</em></div>
-        <span class="dp-field-hint">${icon("images")} Có thể thêm/xoá nhiều ảnh — ảnh đầu là ảnh đại diện.</span>
+        <span class="dp-field-hint">${icon("camera")} Chỉ chụp trực tiếp bằng camera. Có thể thêm/xoá nhiều ảnh — ảnh đầu là ảnh đại diện.</span>
         <div id="dp-store-photos"></div>
       </div>
 

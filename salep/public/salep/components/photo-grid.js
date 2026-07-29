@@ -26,7 +26,9 @@ export function createPhotoGrid({ mount, fieldname, initial = [], max = 8, onErr
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
-  input.multiple = true; // cho chọn nhiều từ thư viện; picker vẫn có tuỳ chọn Chụp ảnh
+  // CHỈ chụp trực tiếp bằng camera (không cho chọn ảnh có sẵn) — bảo đảm ảnh mới
+  // + GPS thật tại điểm. capture=environment → mở thẳng camera sau; mỗi lần 1 tấm.
+  input.setAttribute("capture", "environment");
   input.hidden = true;
   const grid = document.createElement("div");
   grid.className = "dp-photo-grid";
@@ -48,7 +50,7 @@ export function createPhotoGrid({ mount, fieldname, initial = [], max = 8, onErr
   }
   function addTile() {
     if (photos.length >= max) return "";
-    const label = lastFix ? "Thêm ảnh" : "Bật định vị & thêm ảnh";
+    const label = lastFix ? "Chụp thêm ảnh" : "Bật định vị & chụp ảnh";
     return `<button type="button" class="dp-photo-add" data-add ${busy ? "disabled" : ""}>
       <span class="dp-photo-add-ic">${icon("camera")}</span>
       <span class="dp-photo-add-tx">${esc(busy && !active ? "Đang lấy vị trí GPS..." : label)}</span>
