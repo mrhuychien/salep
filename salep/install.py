@@ -33,6 +33,12 @@ PERMISSIONS = {
         "Channel Manager": dict(read=1, write=1, create=0, delete=0, if_owner=0),
         "System Manager": dict(read=1, write=1, create=1, delete=1, if_owner=0),
     },
+    # Nhật ký bàn giao điểm (doc/08 §4): chỉ ghi bằng code (salep.api.npp_manage);
+    # NPP đọc qua whitelisted methods đã scope → không cấp quyền cho Sales Staff.
+    "Display Point Transfer": {
+        "Channel Manager": dict(read=1, write=0, create=0, delete=0, if_owner=0),
+        "System Manager": dict(read=1, write=1, create=1, delete=1, if_owner=0),
+    },
 }
 
 
@@ -55,10 +61,13 @@ def _setup_workflow():
 
 
 def _add_indexes():
+    # install-app đánh dấu mọi patch đã chạy → index của các patch sau cũng tạo ở đây.
     try:
         from salep.patches.v0_0_1 import add_db_indexes
+        from salep.patches.v0_0_4 import add_assignment_indexes
 
         add_db_indexes.execute()
+        add_assignment_indexes.execute()
     except Exception:
         frappe.log_error(title="salep: tạo index thất bại")
 
@@ -74,8 +83,12 @@ def _create_roles():
             frappe.log_error(title=f"salep: tạo role {role_name} thất bại")
 
 
-def _grant_permissions():
+def _grant_permissions(doctypes=None):
+    """Cấp quyền theo PERMISSIONS. `doctypes` = chỉ cấp cho các DocType này (patch dùng
+    khi thêm DocType mới); None = tất cả (after_install). Idempotent."""
     for doctype, role_perms in PERMISSIONS.items():
+        if doctypes and doctype not in doctypes:
+            continue
         for role, perms in role_perms.items():
             try:
                 # add_permission tạo Custom DocPerm (read=1 mặc định) nếu chưa có.

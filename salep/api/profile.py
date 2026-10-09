@@ -15,6 +15,46 @@ _EDITABLE_FIELDS = (
     "bank_name",
 )
 
+# Danh tính hồ sơ: NPP khoá tài khoản / reset mật khẩu / cho nghỉ việc theo `user` của hồ sơ
+# thuộc NPP mình (doc/08 §3) → người thường không được tự trỏ hồ sơ sang người / NPP khác.
+_IDENTITY_FIELDS = ("user", "distributor")
+_IDENTITY_ADMIN_ROLES = {"System Manager", "Channel Manager"}
+
+
+# ---------------------------------------------------------------------------
+# doc_events (xem hooks.py)
+# ---------------------------------------------------------------------------
+def validate_profile(doc, method=None):
+    """Khoá danh tính hồ sơ NV (`user`, `distributor`) với người thường (NV / chủ NPP).
+
+    Chủ bản ghi có quyền ghi If Owner nên gọi được frappe.client.* trực tiếp:
+    - Tạo mới: chỉ được tạo hồ sơ của CHÍNH mình (code server như npp `create_staff`
+      chèn hồ sơ cho user vừa tạo với ignore_permissions).
+    - Sửa: không được đổi `user` / `distributor`.
+    QL kênh / System Manager, code server (ignore_permissions) và cài đặt/migrate được phép.
+    """
+    if (
+        doc.flags.ignore_permissions
+        or frappe.flags.in_install
+        or frappe.flags.in_migrate
+        or frappe.flags.in_patch
+        or set(frappe.get_roles()) & _IDENTITY_ADMIN_ROLES
+    ):
+        return
+    if doc.is_new():
+        if doc.get("user") and doc.get("user") != frappe.session.user:
+            frappe.throw(
+                _("Chỉ được tạo hồ sơ nhân viên cho chính tài khoản đang đăng nhập."), frappe.PermissionError
+            )
+        return
+    before = doc.get_doc_before_save()
+    # So sánh sau khi quy rỗng/None về một (form gửi "" cho Link trống, DB lưu NULL).
+    if before and any((before.get(f) or None) != (doc.get(f) or None) for f in _IDENTITY_FIELDS):
+        frappe.throw(
+            _("Không được đổi tài khoản / NPP của hồ sơ nhân viên — liên hệ quản lý kênh."),
+            frappe.PermissionError,
+        )
+
 
 @frappe.whitelist()
 def get_my_profile():

@@ -1,6 +1,7 @@
 import { html, icon, emptyState } from "../lib/dom.js";
 import { esc, statusBadge, formatDate } from "../lib/format.js";
 import { call } from "../lib/api.js";
+import { isNppOwner } from "../lib/store.js";
 import { renderMap } from "../lib/map.js";
 import { setHeaderTitle } from "../components/nav.js";
 import { toastError } from "../components/toast.js";
@@ -15,6 +16,7 @@ function row(p) {
       <div class="dp-list-title">${esc(p.point_name || p.display_point || "—")}</div>
       <div class="dp-list-sub">${esc(p.distributor || "")}</div>
       <div class="dp-list-sub">${esc(p.point_phone || "")}</div>
+      ${p.staff_name ? `<div class="dp-list-sub">NV: ${esc(p.staff_name)}</div>` : ""}
     </div>
     ${statusBadge(p.workflow_state)}
   </a>`;
@@ -29,10 +31,19 @@ export async function render({ container, params }) {
     container.innerHTML = emptyState("Không tải được", "⚠️", e.message);
     return;
   }
+  // Đã rời màn hình trong lúc tải → không đè tiêu đề / dựng DOM cho màn mới.
+  if (!container.isConnected) return;
 
   const pr = data.program || {};
   const list = data.participations || [];
   if (pr.program_name) setHeaderTitle(pr.program_name);
+  // Chủ NPP: sang màn Quản lý (tab Chương trình lọc sẵn). Shell cũ chưa có route /npp → tải lại cả trang.
+  let manageLink = "";
+  if (isNppOwner()) {
+    const url = `/npp?t=programs&program=${encodeURIComponent(program)}`;
+    const attr = window.DP_APP?.build ? `data-go="${esc(url)}"` : `href="${esc(`/dp?r=${Date.now()}#${url}`)}"`;
+    manageLink = `<a class="dp-link" ${attr}>Quản lý &amp; gán NV →</a>`;
+  }
 
   container.innerHTML = html`
     <div class="dp-view-banner">
@@ -52,7 +63,7 @@ export async function render({ container, params }) {
     <div class="dp-section-head"><h2>Bản đồ điểm tham gia</h2></div>
     <div class="dp-map" id="dp-map"></div>
 
-    <div class="dp-section-head"><h2>Danh sách điểm</h2></div>
+    <div class="dp-section-head"><h2>Danh sách điểm</h2>${manageLink}</div>
     <div class="dp-list">
       ${list.length ? list.map(row).join("") : emptyState("Chưa có điểm tham gia", "📦")}
     </div>

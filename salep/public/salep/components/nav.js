@@ -10,6 +10,13 @@ const TABS = [
   { key: "programs", label: "Chương trình", icon: "bullhorn", path: "/programs" },
   { key: "profile", label: "Hồ sơ", icon: "circle-user", path: "/profile" },
 ];
+// Chủ NPP thấy thêm tab Quản lý (đứng trước Hồ sơ) → bottom nav 5 mục (doc/08 §8).
+const NPP_TAB = { key: "npp", label: "Quản lý", icon: "users-gear", path: "/npp" };
+
+function navTabs() {
+  if (!ctx.isNppOwner) return TABS;
+  return [...TABS.slice(0, -1), NPP_TAB, TABS[TABS.length - 1]];
+}
 
 const SEASONS = [
   { key: "spring", label: "Xuân", emoji: "🌸" },
@@ -45,6 +52,7 @@ export function applySeason(season) {
 }
 
 export function renderChrome(root) {
+  const tabs = navTabs();
   root.innerHTML = `
     <header class="dp-header">
       <div class="dp-header-inner">
@@ -61,8 +69,8 @@ export function renderChrome(root) {
 
     <main class="dp-main" id="dp-view"></main>
 
-    <nav class="dp-bottom-nav">
-      ${TABS.map(
+    <nav class="dp-bottom-nav" style="--dp-nav-n:${tabs.length}">
+      ${tabs.map(
         (t) =>
           `<button class="dp-nav-item" data-tab="${t.key}" data-go="${t.path}"><span class="dp-nav-icon"><i class="fas fa-${t.icon}"></i></span><span class="dp-nav-label">${esc(
             t.label
@@ -72,7 +80,7 @@ export function renderChrome(root) {
 
     <div class="dp-acct-menu" id="dp-acct-menu" hidden>
       <div class="dp-acct-name">${esc(ctx.fullName)}</div>
-      <div class="dp-acct-sub">${esc(ctx.distributor || ctx.user)}</div>
+      <div class="dp-acct-sub">${esc(ctx.distributor || ctx.nppCustomer || ctx.user)}</div>
       ${
         ctx.isNpp
           ? `<button class="dp-acct-npp" data-npp><i class="fas fa-store"></i> Về portal NPP</button>`

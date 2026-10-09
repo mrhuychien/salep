@@ -12,6 +12,9 @@
   "phone",
   "cccd",
   "distributor",
+  "employment_status",
+  "left_on",
+  "handover_to",
   "profile_photo",
   "bank_section",
   "bank_account_name",
@@ -57,6 +60,30 @@
    "in_standard_filter": 1
   },
   {
+   "default": "Đang làm",
+   "fieldname": "employment_status",
+   "fieldtype": "Select",
+   "label": "Trạng thái làm việc",
+   "options": "Đang làm\nNghỉ việc",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "depends_on": "eval:doc.employment_status=='Nghỉ việc'",
+   "fieldname": "left_on",
+   "fieldtype": "Date",
+   "label": "Ngày nghỉ việc",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.employment_status=='Nghỉ việc'",
+   "fieldname": "handover_to",
+   "fieldtype": "Link",
+   "label": "Bàn giao cho",
+   "options": "User",
+   "read_only": 1
+  },
+  {
    "fieldname": "profile_photo",
    "fieldtype": "Attach Image",
    "label": "Ảnh đại diện"
@@ -85,7 +112,7 @@
  "image_field": "profile_photo",
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-01 00:00:00.000000",
+ "modified": "2026-10-09 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Display Point",
  "name": "Sales Staff Profile",

@@ -19,7 +19,19 @@ doc_events = {
         "on_update": "salep.api.participation.on_state_change",        # set approved_by/on khi Đã duyệt
         "on_trash": "salep.api.participation.guard_delete",            # chặn xoá khi Đã duyệt
     },
+    # NPP khoá / cho nghỉ việc theo hồ sơ NV và nhận diện chủ NPP qua User.custom_customer
+    # → người thường không được tự đổi danh tính này (doc/08 §1, §3).
+    "Sales Staff Profile": {
+        "validate": "salep.api.profile.validate_profile",      # khoá user/distributor của hồ sơ
+    },
+    "User": {
+        "validate": "salep.api.npp_manage.guard_npp_binding",  # chỉ System Manager gán custom_customer
+    },
 }
+
+# Nhật ký bàn giao điểm (Display Point Transfer) là LỊCH SỬ — link tới điểm/hồ sơ NV không
+# được chặn việc xoá hồ sơ NV hay điểm bán (doc/08).
+ignore_links_on_delete = ["Display Point Transfer"]
 
 # ---------------------------------------------------------------------------
 # Installation

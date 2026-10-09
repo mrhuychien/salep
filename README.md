@@ -20,13 +20,16 @@ UI của **portal NPP (app nhà phân phối) đã có sẵn**, chỉ gọi sang
 | Display Point | Điểm bán (master, bền, chống trùng SĐT) | `DP-.YYYY.-.#####` |
 | Promotion Program | Chương trình trưng bày | `CT-.YYYY.-.###` |
 | Display Participation | Lượt tham gia (transaction, có workflow) | `DPT-.YYYY.-.#####` |
+| Display Point Transfer | Nhật ký bàn giao điểm bán (đổi NV phụ trách: gán lại / nghỉ việc), chỉ ghi bằng code | `hash` |
+
+Sales Staff Profile có thêm `employment_status` (Đang làm / Nghỉ việc), `left_on`, `handover_to`.
 
 ## Kiến trúc (house style)
 - Backend = **whitelisted methods** trong `salep/api/*`, wire qua `hooks.doc_events`. KHÔNG Server/Client Script rải rác.
 - Permissions cấp bằng `add_permission()` trong `salep/install.py` (KHÔNG ship custom_docperm.json).
 - Workflow **Display Participation Approval** + Roles cài bằng patch idempotent (`salep/patches/v0_0_1/`).
 - `patches.txt` có header `[pre_model_sync]` / `[post_model_sync]`.
-- DB index: `Display Point.phone`, `(display_point, promotion_program)` trên lượt.
+- DB index: `Display Point.phone`, `Display Point (distributor, owner)`, `(display_point, promotion_program)` trên lượt.
 
 ## API (portal gọi)
 - `salep.api.point.create_point` / `.list_my_points`
@@ -34,6 +37,23 @@ UI của **portal NPP (app nhà phân phối) đã có sẵn**, chỉ gọi sang
 - `salep.api.profile.get_my_profile` / `.upsert_my_profile`
 - `salep.api.dashboard.staff_summary` / `.npp_summary` / `.channel_summary` (role-gated)
 - `salep.api.portal.list_programs` / `.list_my_participations` / `.get_point` / `.get_participation` (read cho SPA)
+- `salep.api.npp_manage.npp_overview` / `.npp_participations` / `.npp_staff_history` /
+  `.npp_assign_points` / `.npp_set_points_active` / `.npp_offboard_staff` — chủ NPP trên `/dp`
+  (gate `_require_npp`: chỉ tài khoản NPP, tự scope theo NPP của mình)
+
+## Quản lý NV phụ trách điểm bán (chủ NPP) — [`doc/08`](doc/08_npp_staff_assignment.md)
+NV phụ trách điểm = `Display Point.owner`, NV phụ trách lượt = `Display Participation.owner`.
+Logic ghi nằm một chỗ ở `salep.api.npp_manage` (hàm lõi `assign_points`, `set_points_active`,
+`offboard_staff`, `overview`, `participations`, `staff_history`); app `npp` (`/npp` → Khuyến mại)
+gọi thẳng hàm lõi sau `require_customer()`, `/dp` gọi các method `npp_*`.
+- Gán điểm cho NV (hoặc "NPP giữ lại" `__npp__`): đổi owner điểm + **mọi lượt của chương trình còn
+  hiệu lực** sang người mới; lượt của chương trình **đã kết thúc giữ nguyên** người thực hiện (KPI cũ không dời).
+- Kiểm tra trước, ghi sau: mọi điểm phải thuộc NPP, đích phải là NV của NPP đang làm + tài khoản hoạt động;
+  lỗi giữa chừng → rollback toàn bộ. Tối đa 1000 điểm/lần. Mỗi điểm có thay đổi ghi 1 dòng `Display Point Transfer`.
+- Nghỉ việc: bàn giao mọi điểm + lượt còn hiệu lực (mặc định về NPP), hồ sơ → `Nghỉ việc` (`left_on`,
+  `handover_to`), khoá tài khoản NV (trừ tài khoản chủ NPP). Chạy lại = quét phần còn sót.
+- Chủ NPP đọc được mọi điểm/lượt của NPP mình qua `portal.get_point` / `.get_participation` /
+  `.list_program_participations` (mỗi lượt kèm `owner` + `staff_name`).
 
 ## SPA Portal NVBH — `/dp` (frappe-portal-spa)
 www page `salep/www/dp.{py,html}`, asset `salep/public/salep/` → `/assets/salep/salep/`.
@@ -42,6 +62,10 @@ Vanilla JS **no-build**, hash router, view code-split, **import map cache-bust**
 - Routes: `#/` (dashboard) · `#/points` (lượt tham gia + lọc trạng thái) · `#/points/new` (tạo điểm) ·
   `#/programs` · `#/participations/new` (đăng ký + camera + GPS) · `#/participations/:name` (chi tiết + duyệt) ·
   `#/participations/:name/edit` (chỉnh sửa ảnh/GPS, đổi điểm/CT khi chưa duyệt) · `#/profile`.
+- Routes chủ NPP (tab **Quản lý**, chỉ hiện khi `isNppOwner`): `#/npp?t=staff|points|programs`
+  (nhân viên / điểm bán / chương trình, chọn nhiều + gán NV, nghỉ việc) · `#/npp/staff/:name`
+  (lịch sử hoạt động 1 NV + chuyển điểm / nghỉ việc).
+- Chống shell cũ: `SHELL_BUILD` ở `www/dp.py` phải khớp `BUILD` trong `shell.js` (lệch → banner tải lại).
 - Sửa lượt theo Allow Edit doc/04 (NVBH: Nháp/Đã duyệt/Từ chối, KHÔNG ở Chờ duyệt); mọi sửa ghi `Version` và hiện ở timeline.
 - Camera: `<input capture="environment">` + `upload_file`; GPS: `navigator.geolocation`.
 - Quyền thật kiểm ở server (whitelisted methods); UI chỉ ẩn nút.
@@ -57,6 +81,12 @@ bench --site <site> migrate && bench build && bench restart
 ```
 Sau cài: gán role **Sales Staff** cho User của NVBH (kèm tạo Sales Staff Profile),
 role **Channel Manager** cho QL kênh.
+
+> **Cập nhật doc/08 (gán / chuyển / nghỉ việc) BẮT BUỘC `bench migrate`**: tạo DocType
+> `Display Point Transfer`, thêm field nghỉ việc vào Sales Staff Profile và chạy patch `v0_0_4`
+> (cấp quyền, backfill `Đang làm`, index `(distributor, owner)`). Deploy cả 2 app `salep` + `npp`:
+> `bench --site <site> migrate && bench build && bench restart`, rồi refresh. Chưa migrate → các nút
+> gán/nghỉ việc báo "Cần cập nhật app salep (bench migrate)…".
 
 ## Còn lại (làm sau)
 - Print Format (module Display Point) — export khi có mẫu.

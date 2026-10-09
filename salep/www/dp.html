@@ -26,7 +26,9 @@
     "/assets/salep/salep/components/nav.js":   "/assets/salep/salep/components/nav.js?v={{ v }}",
     "/assets/salep/salep/components/toast.js": "/assets/salep/salep/components/toast.js?v={{ v }}",
     "/assets/salep/salep/components/guide.js": "/assets/salep/salep/components/guide.js?v={{ v }}",
-    "/assets/salep/salep/components/photo-grid.js": "/assets/salep/salep/components/photo-grid.js?v={{ v }}"
+    "/assets/salep/salep/components/photo-grid.js": "/assets/salep/salep/components/photo-grid.js?v={{ v }}",
+    "/assets/salep/salep/components/sheet.js": "/assets/salep/salep/components/sheet.js?v={{ v }}",
+    "/assets/salep/salep/components/npp-ui.js": "/assets/salep/salep/components/npp-ui.js?v={{ v }}"
   }
 }
 </script>
@@ -43,6 +45,9 @@
     isStaff:     {{ dp_is_staff }},
     isNpp:       {{ dp_is_npp }},
     hasProfile:  {{ dp_has_profile }},
+    nppCustomer: {{ dp_npp_customer | tojson }},
+    isNppOwner:  {{ dp_is_npp_owner }},
+    shellBuild:  {{ shell_build | tojson }},
     assetVersion: {{ asset_version | tojson }},
     csrfToken:   {{ csrf_token | tojson }},
     baseUrl:     "/assets/salep/salep"
@@ -55,4 +60,28 @@
   <div style="padding:5rem 1rem;text-align:center;color:#94a3b8"><i class="fas fa-spinner dp-spin" style="font-size:2rem"></i></div>
 </div>
 <script type="module" src="/assets/salep/salep/shell.js?v={{ asset_version }}"></script>
+<script>
+  // Chống shell cũ (doc/08 §8): shell.js đặt window.DP_APP.build; lệch SHELL_BUILD ở dp.py
+  // = trình duyệt/CDN đang giữ shell cũ → banner đỏ, bấm để tải lại với ?r= mới.
+  window.addEventListener("load", () =>
+    setTimeout(() => {
+      const expected = {{ shell_build | tojson }};
+      const got = window.DP_APP && window.DP_APP.build;
+      if (got === expected || document.getElementById("dp-stale-banner")) return;
+      console.error(`[DP] shell build lệch: trình duyệt chạy ${got || "(bản cũ, không có build)"}, server ${expected}`);
+      const bar = document.createElement("button");
+      bar.id = "dp-stale-banner";
+      bar.type = "button";
+      bar.textContent = "Trang đang chạy bản cũ do bộ nhớ đệm — bấm để tải lại";
+      bar.style.cssText =
+        "position:fixed;top:0;left:0;right:0;z-index:10050;min-height:48px;padding:10px 16px;border:none;" +
+        "background:#dc2626;color:#fff;font:600 14px/1.4 Inter,-apple-system,sans-serif;cursor:pointer;" +
+        "box-shadow:0 4px 16px rgba(0,0,0,.25)";
+      bar.addEventListener("click", () => {
+        window.location.href = `/dp?r=${Date.now()}${window.location.hash}`;
+      });
+      document.body.appendChild(bar);
+    }, 3000)
+  );
+</script>
 {% endblock %}

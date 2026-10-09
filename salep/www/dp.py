@@ -4,6 +4,12 @@
 
 import frappe
 
+from salep.api.npp_manage import npp_customer_of
+
+# Mốc build của shell /dp — shell.js so với BUILD của nó; lệch → banner tải lại
+# (chống shell cũ bị cache, doc/08 §8). Đổi giá trị này khi đổi route/shell.
+SHELL_BUILD = "dp-npp-r1"
+
 
 def _is_npp(user):
     """NPP = nhà phân phối. Nhận diện bằng: role phân phối, hoặc là Portal User
@@ -41,7 +47,12 @@ def get_context(context):
     context.dp_is_manager = 1 if roles & {"Channel Manager", "System Manager"} else 0
     context.dp_is_staff = 1 if "Sales Staff" in roles else 0
     context.dp_has_profile = 1 if profile else 0
-    context.dp_is_npp = 1 if _is_npp(frappe.session.user) else 0
+    # Chủ NPP (User.custom_customer / Portal User) → tab Quản lý NPP trên /dp (doc/08 §6).
+    npp_customer = npp_customer_of(frappe.session.user) or ""
+    context.dp_npp_customer = npp_customer
+    context.dp_is_npp_owner = 1 if npp_customer else 0
+    context.dp_is_npp = 1 if (npp_customer or _is_npp(frappe.session.user)) else 0
+    context.shell_build = SHELL_BUILD
 
     # Cache-bust: now() đã làm sạch ký tự để nhúng vào ?v= và import map.
     context.asset_version = frappe.utils.now().replace(" ", "T").replace(":", "-")

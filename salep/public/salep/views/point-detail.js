@@ -18,6 +18,8 @@ export async function render({ container, params }) {
     container.innerHTML = emptyState("Không tải được điểm bán", "⚠️", e.message);
     return;
   }
+  // Đã rời màn hình trong lúc tải → không đè tiêu đề / dựng DOM cho màn mới.
+  if (!container.isConnected) return;
   if (doc.point_name) setHeaderTitle(doc.point_name);
 
   const gps = { latitude: doc.latitude, longitude: doc.longitude, accuracy: doc.gps_accuracy };

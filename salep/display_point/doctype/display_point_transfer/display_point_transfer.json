@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-09 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "display_point",
+  "distributor",
+  "from_user",
+  "to_user",
+  "from_staff",
+  "to_staff",
+  "reason",
+  "participations_moved",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "display_point",
+   "fieldtype": "Link",
+   "label": "Điểm bán",
+   "options": "Display Point",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "distributor",
+   "fieldtype": "Link",
+   "label": "NPP",
+   "options": "Customer",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "from_user",
+   "fieldtype": "Link",
+   "label": "Phụ trách cũ",
+   "options": "User",
+   "search_index": 1,
+   "in_standard_filter": 1,
+   "description": "Owner cũ của điểm bán"
+  },
+  {
+   "fieldname": "to_user",
+   "fieldtype": "Link",
+   "label": "Phụ trách mới",
+   "options": "User",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Owner mới của điểm bán"
+  },
+  {
+   "fieldname": "from_staff",
+   "fieldtype": "Link",
+   "label": "NV cũ",
+   "options": "Sales Staff Profile",
+   "description": "Có nếu owner cũ là nhân viên của NPP"
+  },
+  {
+   "fieldname": "to_staff",
+   "fieldtype": "Link",
+   "label": "NV mới",
+   "options": "Sales Staff Profile",
+   "description": "Có nếu owner mới là nhân viên của NPP"
+  },
+  {
+   "default": "Gán lại",
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "label": "Lý do",
+   "options": "Gán lại\nNghỉ việc",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "participations_moved",
+   "fieldtype": "Int",
+   "label": "Số lượt chuyển theo",
+   "description": "Lượt tham gia chương trình còn hiệu lực chuyển cùng điểm"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Display Point Transfer",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "search_fields": "display_point,distributor,to_user",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

@@ -10,7 +10,10 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, now_datetime
 
+from salep.api.npp_manage import npp_customer_of
+
 STATE_APPROVED = "Đã duyệt"
+MANAGER_ROLES = {"Channel Manager", "System Manager"}
 
 
 def _month_bucket(d):
@@ -146,18 +149,59 @@ def _attach_point_info(rows):
     return rows
 
 
+def _attach_staff_names(rows):
+    """Gộp nhãn NV phụ trách (owner) vào lượt: họ tên hồ sơ NV, else fullname/user (1 query)."""
+    owners = list({r.owner for r in rows if r.get("owner")})
+    names = {}
+    if owners:
+        for s in frappe.get_all(
+            "Sales Staff Profile",
+            filters={"user": ("in", owners)},
+            fields=["user", "full_name"],
+        ):
+            names[s.user] = s.full_name
+    for r in rows:
+        owner = r.get("owner")
+        r["staff_name"] = names.get(owner) or (frappe.utils.get_fullname(owner) if owner else None) or owner
+    return rows
+
+
+def _check_read(doc):
+    """Quyền đọc 1 điểm/lượt: DocPerm (If Owner / QL kênh) HOẶC chủ NPP của doc.distributor
+    (doc/08 §6 — chủ NPP đọc được mọi điểm/lượt của NPP mình)."""
+    if frappe.has_permission(doc.doctype, "read", doc=doc):
+        return
+    if doc.get("distributor") and npp_customer_of() == doc.distributor:
+        return
+    frappe.throw(_("Bạn không có quyền xem {0}.").format(doc.name), frappe.PermissionError)
+
+
 @frappe.whitelist()
 def list_program_participations(program):
     """Danh sách điểm tham gia 1 chương trình. Theo quyền: Sales Staff thấy lượt
-    của mình (If Owner), Channel Manager thấy tất cả. Kèm thông tin chương trình."""
-    rows = frappe.get_list(
-        "Display Participation",
-        filters={"promotion_program": program},
-        fields=["name", "display_point", "distributor", "workflow_state", "display_photo", "modified"],
-        order_by="modified desc",
-        limit_page_length=500,
-    )
+    của mình (If Owner), Channel Manager thấy tất cả, chủ NPP thấy mọi lượt của NPP
+    mình (doc/08 §6). Mỗi dòng kèm owner + staff_name. Kèm thông tin chương trình."""
+    fields = ["name", "display_point", "distributor", "workflow_state", "display_photo", "modified", "owner"]
+    npp = npp_customer_of()
+    if npp and not set(frappe.get_roles()) & MANAGER_ROLES:
+        # get_all bỏ qua If Owner nhưng ép lọc distributor = NPP của chính người gọi.
+        rows = frappe.get_all(
+            "Display Participation",
+            filters={"promotion_program": program, "distributor": npp},
+            fields=fields,
+            order_by="modified desc",
+            limit_page_length=500,
+        )
+    else:
+        rows = frappe.get_list(
+            "Display Participation",
+            filters={"promotion_program": program},
+            fields=fields,
+            order_by="modified desc",
+            limit_page_length=500,
+        )
     _attach_point_info(rows)
+    _attach_staff_names(rows)
     program_doc = frappe.db.get_value(
         "Promotion Program", program, ["program_name", "status", "start_date", "end_date"], as_dict=True
     )
@@ -166,17 +210,18 @@ def list_program_participations(program):
 
 @frappe.whitelist()
 def get_point(name):
-    """Một điểm bán (cho preview khi đăng ký). Enforce quyền read."""
+    """Một điểm bán (cho preview khi đăng ký). Enforce quyền read (hoặc chủ NPP của điểm)."""
     doc = frappe.get_doc("Display Point", name)
-    doc.check_permission("read")
+    _check_read(doc)
     return doc.as_dict()
 
 
 @frappe.whitelist()
 def get_participation(name):
-    """Chi tiết lượt tham gia + thông tin điểm/chương trình + mốc lịch sử."""
+    """Chi tiết lượt tham gia + thông tin điểm/chương trình + mốc lịch sử.
+    Enforce quyền read (hoặc chủ NPP của lượt)."""
     doc = frappe.get_doc("Display Participation", name)
-    doc.check_permission("read")
+    _check_read(doc)
     data = doc.as_dict()
 
     point = frappe.db.get_value(
@@ -199,7 +244,7 @@ def get_participation(name):
         timeline.append({"label": _("Từ chối"), "on": doc.modified, "note": doc.reject_reason})
 
     # track_changes ghi mỗi lần sửa vào Version → hiện cho người dùng (get_all bỏ qua
-    # quyền trên Version; đã check_permission read lượt ở trên).
+    # quyền trên Version; đã kiểm quyền read lượt ở trên).
     for v in frappe.get_all(
         "Version",
         filters={"ref_doctype": "Display Participation", "docname": name},
