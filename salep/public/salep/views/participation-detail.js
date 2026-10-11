@@ -3,6 +3,7 @@ import { esc, formatDate, formatDateTime, statusMeta } from "../lib/format.js";
 import { call, uploadFile } from "../lib/api.js";
 import { ctx, isManager } from "../lib/store.js";
 import { toastError, toastSuccess } from "../components/toast.js";
+import { payoutCardHtml, bindPayoutCard } from "../components/payout-sheet.js";
 
 function monthlyCard(cov, visits, canReport) {
   const pct = cov.required ? Math.min(100, Math.round((cov.have / cov.required) * 100)) : 0;
@@ -116,6 +117,8 @@ export async function render({ container, params }) {
     : isOwner && ["Nháp", "Đã duyệt", "Từ chối"].includes(state);
   // Báo cáo ảnh hàng tháng: chủ lượt, sau khi đã duyệt (đang tham gia).
   const canReport = isOwner && state === "Đã duyệt";
+  // Trả thưởng 2 lần (doc/09): chỉ lượt đã duyệt; quyền ghi/xoá do server tính sẵn.
+  const payouts = state === "Đã duyệt" ? data.payouts : null;
 
   const btns = [];
   if (mgr && state === "Chờ duyệt") {
@@ -153,11 +156,20 @@ export async function render({ container, params }) {
       { icon: "bullhorn", value: pr.program_name, sub: pr.status },
       { icon: "calendar", value: pr.start_date ? `${formatDate(pr.start_date)} – ${formatDate(pr.end_date)}` : "" },
     ])}
+    ${payoutCardHtml(payouts, { canRecord: !!data.can_record_payout, canDelete: !!data.can_delete_payout })}
     ${monthlyCard(data.coverage || { required: 0, have: 0, needs: false }, data.visits || [], canReport)}
     ${timeline(data.timeline || [])}
 
     ${btns.length ? `<div class="dp-actionbar">${btns.join("")}</div>` : ""}
   `;
+
+  // Lưu / xoá trả thưởng xong → nạp lại cả màn (giữ nguyên trang, lịch sử cập nhật theo).
+  bindPayoutCard(container.querySelector("[data-pay-card]"), {
+    participation: name,
+    pointName: pt.point_name || doc.display_point,
+    payouts,
+    onDone: () => render({ container, params }),
+  });
 
   const reportBtn = container.querySelector("[data-report]");
   if (reportBtn) {

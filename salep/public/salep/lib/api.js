@@ -47,10 +47,19 @@ export async function call(method, args = {}) {
   return data.message;
 }
 
+// Định dạng ảnh tài khoản portal (Website User) được upload — frappe.handler.ALLOWED_MIMETYPES.
+const PORTAL_IMAGE_TYPES = /^image\/(jpe?g|png|gif)$/;
+
 // Resize + nén ảnh phía client trước khi upload (tiết kiệm dung lượng/băng thông).
-// Ảnh > maxDim sẽ thu nhỏ; mọi ảnh tái mã hoá JPEG quality ~0.8. Lỗi → giữ file gốc.
+// Ảnh > maxDim sẽ thu nhỏ; mọi ảnh tái mã hoá JPEG quality ~0.8. JPEG/PNG gốc đã nhỏ hơn bản nén
+// → giữ gốc; định dạng khác (WebP/AVIF/GIF… chọn từ thư viện) luôn đổi sang JPEG vì upload_file
+// chặn chúng với tài khoản portal (như npp components/payout.js). Không giải mã được (HEIC trên
+// Android…) → JPEG/PNG/GIF gửi gốc, định dạng khác báo lỗi tiếng Việt thay vì để server từ chối.
 async function resizeImage(file, maxDim = 1280, quality = 0.8) {
-  if (!file || !file.type || !file.type.startsWith("image/")) return file;
+  const type = (file && file.type) || "";
+  // Không có MIME (HEIC trên một số máy Android) → nhận theo đuôi tên tệp.
+  if (!file || !(type.startsWith("image/") || /\.hei[cf]$/i.test(file.name || ""))) return file;
+  let blob = null;
   try {
     const dataUrl = await new Promise((res, rej) => {
       const r = new FileReader();
@@ -70,22 +79,30 @@ async function resizeImage(file, maxDim = 1280, quality = 0.8) {
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
-    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
-    if (!blob || blob.size >= file.size) return file; // không nhỏ hơn thì giữ gốc
-    const base = (file.name || "photo").replace(/\.[^.]+$/, "");
-    return new File([blob], base + ".jpg", { type: "image/jpeg" });
+    const g = canvas.getContext("2d");
+    g.fillStyle = "#fff"; // ảnh trong suốt (PNG/WebP) → nền trắng (JPEG không có kênh alpha)
+    g.fillRect(0, 0, w, h);
+    g.drawImage(img, 0, 0, w, h);
+    blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
   } catch {
-    return file;
+    blob = null;
   }
+  if (blob && !(/^image\/(jpe?g|png)$/.test(type) && blob.size >= file.size)) {
+    const base = (file.name || "photo").replace(/\.[^.]+$/, "") || "photo";
+    return new File([blob], base + ".jpg", { type: "image/jpeg" });
+  }
+  if (blob || PORTAL_IMAGE_TYPES.test(type)) return file; // JPEG/PNG gốc nhỏ hơn, hoặc server nhận được
+  throw new Error("Không đọc được ảnh (HEIC?) — hãy chọn ảnh JPG/PNG hoặc ảnh chụp màn hình");
 }
 
-// Upload ảnh (chụp từ camera). Trả {file_url, ...}. is_private=0 để portal hiển thị.
+// Upload ảnh (chụp camera hoặc chọn từ thư viện). Trả {file_url, ...}. is_private=0 để portal hiển thị.
 // onProgress(pct 0..100): dùng XHR (fetch không báo được tiến trình upload).
 export async function uploadFile(file, { doctype, docname, fieldname, onProgress } = {}) {
   file = await resizeImage(file);
   const fd = new FormData();
-  fd.append("file", file, file.name || "photo.jpg");
+  // Bỏ dấu nháy / < > / ký tự điều khiển khỏi tên file — server từ chối URL ảnh chứa chúng.
+  const safeName = (file.name || "photo.jpg").replace(/["'<>`\\\u0000-\u001f\u007f]/g, "_");
+  fd.append("file", file, safeName);
   fd.append("is_private", "0");
   fd.append("folder", "Home");
   if (doctype) fd.append("doctype", doctype);

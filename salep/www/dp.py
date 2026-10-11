@@ -8,7 +8,7 @@ from salep.api.npp_manage import npp_customer_of
 
 # Mốc build của shell /dp — shell.js so với BUILD của nó; lệch → banner tải lại
 # (chống shell cũ bị cache, doc/08 §8). Đổi giá trị này khi đổi route/shell.
-SHELL_BUILD = "dp-npp-r1"
+SHELL_BUILD = "dp-pay-r2"
 
 
 def _is_npp(user):

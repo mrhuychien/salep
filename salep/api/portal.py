@@ -11,6 +11,7 @@ from frappe import _
 from frappe.utils import getdate, now_datetime
 
 from salep.api.npp_manage import npp_customer_of
+from salep.api.payout import can_delete, can_record, participation_payouts, payout_map
 
 STATE_APPROVED = "Đã duyệt"
 MANAGER_ROLES = {"Channel Manager", "System Manager"}
@@ -125,6 +126,11 @@ def list_my_participations(search=None, state=None):
             if s in (r.get("point_name") or "").lower()
             or s in (r.get("point_phone") or "").lower()
         ]
+
+    # Số lần đã trả thưởng (0/1/2) của lượt đã duyệt — chip "Trả thưởng x/2" (doc/09 §3.2), 1 query gộp.
+    paid = payout_map([r.name for r in rows if r.workflow_state == STATE_APPROVED])
+    for r in rows:
+        r["payouts_done"] = sum(1 for row in (paid.get(r.name) or {}).values() if row)
     return rows
 
 
@@ -276,6 +282,9 @@ def get_participation(name):
         [v["captured_on"] for v in visits],
     ) if program else {"required": 0, "have": 0, "needs": False, "total": 0}
 
+    # Trả thưởng 2 lần (doc/09): chỉ lượt đã duyệt; quyền ghi/xoá theo salep.api.payout.
+    eligible = doc.workflow_state == STATE_APPROVED
+
     return {
         "doc": data,
         "point": point,
@@ -283,6 +292,9 @@ def get_participation(name):
         "timeline": timeline,
         "visits": visits,
         "coverage": cov,
+        "payouts": participation_payouts(doc) if eligible else None,
+        "can_record_payout": eligible and can_record(doc),
+        "can_delete_payout": eligible and can_delete(doc),
     }
 
 

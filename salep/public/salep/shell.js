@@ -8,7 +8,7 @@ import { toastError } from "./components/toast.js";
 
 // Mốc build shell — PHẢI khớp SHELL_BUILD ở www/dp.py. dp.html so 2 giá trị sau khi tải:
 // lệch = trình duyệt đang chạy shell cũ do cache → banner tải lại (doc/08 §8).
-const BUILD = "dp-npp-r1";
+const BUILD = "dp-pay-r2";
 window.DP_APP = { build: BUILD };
 console.log(`[DP] shell build=${BUILD}`);
 

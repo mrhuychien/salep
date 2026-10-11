@@ -5,6 +5,7 @@ import { esc } from "../lib/format.js";
 import { call } from "../lib/api.js";
 import { setHeaderTitle } from "../components/nav.js";
 import { toastError } from "../components/toast.js";
+import { payoutChip } from "../components/payout-sheet.js";
 
 const STATE_BADGE = {
   "Nháp": "muted",
@@ -29,9 +30,9 @@ function row(r) {
     <div class="dp-list-body">
       <div class="dp-list-title">${esc(r.point_name || r.display_point || "—")}</div>
       <div class="dp-list-sub">${esc(r.program_name || r.promotion_program || "")}</div>
-      <div class="dp-list-sub"><span class="dp-badge dp-badge-${badge}">${esc(
+      <div class="dp-list-sub dp-part-badges"><span class="dp-badge dp-badge-${badge}">${esc(
     r.workflow_state || ""
-  )}</span></div>
+  )}</span>${r.workflow_state === "Đã duyệt" ? payoutChip(r.payouts_done) : ""}</div>
     </div>
     <span class="dp-list-chev">${icon("chevron-right")}</span>
   </a>`;

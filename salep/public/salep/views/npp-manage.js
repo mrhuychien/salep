@@ -1,8 +1,9 @@
-// Quản lý NPP (chủ NPP — doc/08 §8): #/npp?t=staff|points|programs + bộ lọc trên URL.
+// Quản lý NPP (chủ NPP — doc/08 §8): #/npp?t=staff|points|programs|payouts + bộ lọc trên URL.
 // Thẻ danh sách + lọc (đổi tab/lọc chỉ replaceState, không render lại cả màn), chế độ
-// Chọn nhiều + thanh thao tác, sheet Gán NV / chi tiết điểm. Quyền kiểm ở server.
+// Chọn nhiều + thanh thao tác, sheet Gán NV / chi tiết điểm. Tab Trả thưởng (doc/09 §5):
+// tiến độ Lần 1 / Lần 2 theo chương trình, bấm thẻ → chi tiết lượt để ghi. Quyền kiểm ở server.
 import { icon, emptyState, skeleton } from "../lib/dom.js";
-import { esc, formatDate, formatNumber, statusBadge, STATES } from "../lib/format.js";
+import { esc, formatDate, formatNumber, formatVND, statusBadge, STATES } from "../lib/format.js";
 import { call } from "../lib/api.js";
 import { ctx, isNppOwner } from "../lib/store.js";
 import { toastError } from "../components/toast.js";
@@ -24,19 +25,30 @@ import {
 const OTHER = "__other__"; // lọc Phụ trách = Khác (Administrator, NV đã xoá hồ sơ, NV NPP khác…)
 const MULTI_KEY = "dp_npp_multi";
 const PARTS_LIMIT = 2000; // npp_participations trả tối đa 2000 lượt
+const PAY_LIMIT = 5000; // npp_payout_progress trả tối đa 5000 dòng (ROWS_LIMIT ở salep/api/payout.py)
+const PROGRAM_RUNNING = "Đang chạy";
 
 const TABS = [
   { key: "staff", label: "Nhân viên" },
   { key: "points", label: "Điểm bán" },
   { key: "programs", label: "Chương trình" },
+  { key: "payouts", label: "Trả thưởng" },
 ];
 // Khoá lọc theo tab; "" = mặc định (không ghi lên URL).
 const FILTERS = {
   staff: ["q", "st"],
   points: ["q", "owner", "st", "joined"],
   programs: ["q", "program", "owner", "state", "point"],
+  payouts: ["q", "program", "st", "owner"],
 };
-const UNITS = { staff: "nhân viên", points: "điểm bán", programs: "lượt tham gia" };
+const UNITS = { staff: "nhân viên", points: "điểm bán", programs: "lượt tham gia", payouts: "lượt đã duyệt" };
+// Trạng thái trả thưởng của 1 lượt (progress().rows[].status — doc/09 §3.3).
+const PAY_STATUS = [
+  { value: "none", label: "Chưa trả" },
+  { value: "r1", label: "Đã trả lần 1" },
+  { value: "done", label: "Đủ 2 lần" },
+];
+const EMPTY_PAY = { totals: { eligible: 0, paid_1: 0, paid_2: 0 }, programs: [], rows: [] };
 const POINT_ACTIONS = [
   { act: "assign", label: "Gán NV", icon: "user-pen" },
   { act: "off", label: "Ngừng HĐ", icon: "circle-pause", cls: "dp-btn-outline" },
@@ -46,6 +58,8 @@ const PART_ACTIONS = [{ act: "assign", label: "Gán NV phụ trách điểm bán
 
 const isTab = (key) => TABS.some((x) => x.key === key);
 const blank = (tab) => Object.fromEntries(FILTERS[tab].map((k) => [k, ""]));
+// Tab không có chế độ Chọn nhiều / thanh thao tác hàng loạt.
+const noMulti = (tab) => tab === "staff" || tab === "payouts";
 
 // Khoá "người phụ trách" của 1 điểm/lượt cho bộ lọc Phụ trách.
 function ownerKey(r) {
@@ -155,6 +169,29 @@ function partRow(r, multi, on) {
   </div>`;
 }
 
+// Chip Lần 1 / Lần 2 trên thẻ tiến độ: đã trả → ✓ + ngày, chưa → "Chưa trả".
+function payChip(n, b) {
+  return b
+    ? `<span class="dp-pay-lchip is-paid">${icon("circle-check")} L${n} · ${esc(formatDate(b.payout_date))}</span>`
+    : `<span class="dp-pay-lchip">L${n} · Chưa trả</span>`;
+}
+
+// r = progress().rows[]; owner = { owner_kind, staff_name, staff_left } cho ownerChip; showProgram khi
+// đang xem mọi chương trình. Bấm thẻ → chi tiết lượt (ghi / sửa trả thưởng ở đó).
+function payRow(r, owner, showProgram) {
+  const sub = [showProgram ? r.program_name || r.promotion_program : "", r.point_phone].filter(Boolean).join(" · ");
+  return `<div class="dp-list-item dp-npp-item dp-pay-item" data-go="/participations/${encodeURIComponent(
+    r.participation
+  )}">
+    <div class="dp-list-body">
+      <div class="dp-list-title">${esc(r.point_name || r.display_point)}</div>
+      <div class="dp-list-sub">${esc(sub || "—")}</div>
+      <div class="dp-npp-meta">${ownerChip(owner)}</div>
+    </div>
+    <div class="dp-npp-side dp-pay-side">${payChip(1, r.round_1)}${payChip(2, r.round_2)}</div>
+  </div>`;
+}
+
 export async function render({ container, query }) {
   if (!isNppOwner()) {
     container.innerHTML = emptyState("Chỉ tài khoản nhà phân phối mới dùng được chức năng này.", "🔒");
@@ -163,9 +200,10 @@ export async function render({ container, query }) {
 
   const S = {
     tab: isTab(query.t) ? query.t : "staff",
-    f: { staff: blank("staff"), points: blank("points"), programs: blank("programs") },
+    f: Object.fromEntries(TABS.map((x) => [x.key, blank(x.key)])),
     data: null,
     parts: new Map(), // chương trình ("" = mọi chương trình) → lượt
+    pay: new Map(), // chương trình ("" = mọi chương trình) → tiến độ trả thưởng
     multi: readMulti(),
     sel: new Set(), // tên điểm (tab Điểm bán) hoặc tên lượt (tab Chương trình)
     visible: [], // tập đang lọc → "Chọn tất cả"
@@ -174,12 +212,17 @@ export async function render({ container, query }) {
     if (query[k]) S.f[S.tab][k] = query[k];
   });
   let pointsByName = new Map();
+  let staffByUser = new Map();
+  let ownerByUser = new Map(); // user → dòng điểm (owner_kind server đã phân loại) — chip Phụ trách tab Trả thưởng
   const partsByName = new Map();
 
   async function loadData() {
     S.data = await call("salep.api.npp_manage.npp_overview");
     pointsByName = new Map((S.data.points || []).map((p) => [p.name, p]));
+    staffByUser = new Map((S.data.staff || []).filter((s) => s.user).map((s) => [s.user, s]));
+    ownerByUser = new Map((S.data.points || []).filter((p) => p.owner).map((p) => [p.owner, p]));
     if (S.tab === "programs") await ensureParts();
+    if (S.tab === "payouts") await ensurePay();
   }
 
   // Lượt của chương trình đang lọc; đã có bản "mọi chương trình" đủ (< giới hạn) → lọc tại chỗ.
@@ -198,6 +241,42 @@ export async function render({ container, query }) {
   }
   const currentParts = () => S.parts.get(S.f.programs.program || "") || [];
 
+  // Tiến độ trả thưởng của chương trình đang lọc; đã có bản "mọi chương trình" đủ (< giới hạn)
+  // → lọc tại chỗ, tổng lấy từ dòng chương trình (cùng số liệu server tính).
+  async function ensurePay() {
+    const key = S.f.payouts.program || "";
+    if (!S.pay.has(key)) {
+      const all = S.pay.get("");
+      let res;
+      if (key && all && (all.rows || []).length < PAY_LIMIT) {
+        const prog = (all.programs || []).find((p) => p.program === key);
+        res = {
+          totals: prog ? { eligible: prog.eligible, paid_1: prog.paid_1, paid_2: prog.paid_2 } : EMPTY_PAY.totals,
+          programs: all.programs || [],
+          rows: (all.rows || []).filter((r) => r.promotion_program === key),
+        };
+      } else {
+        res = await call("salep.api.payout.npp_payout_progress", key ? { program: key } : {});
+      }
+      S.pay.set(key, res || EMPTY_PAY);
+    }
+    return S.pay.get(key);
+  }
+  const currentPay = () => S.pay.get(S.f.payouts.program || "") || EMPTY_PAY;
+
+  // Người phụ trách của 1 dòng trả thưởng → dạng ownerChip (chủ NPP / NV của NPP / khác).
+  // Dòng tiến độ không có owner_kind → tài khoản NPP khác (kế toán…) nhận ra qua owner_kind của điểm
+  // họ đang giữ (server phân loại như doc/08: tài khoản NPP luôn là "npp").
+  function payOwner(r) {
+    if (r.owner && r.owner === ctx.user) return { owner_kind: "npp", staff_name: r.staff_name || "Bạn" };
+    const known = ownerByUser.get(r.owner);
+    if (known && known.owner_kind === "npp") return { owner_kind: "npp", staff_name: r.staff_name || r.owner };
+    const s = staffByUser.get(r.owner);
+    return s
+      ? { owner_kind: "staff", staff_name: r.staff_name || s.full_name, staff_left: s.resigned }
+      : { owner_kind: "other", staff_name: r.staff_name || r.owner };
+  }
+
   try {
     await loadData();
   } catch (e) {
@@ -208,7 +287,7 @@ export async function render({ container, query }) {
   container.innerHTML = `
     <div class="dp-npp">
       <div data-head></div>
-      <div class="dp-pill-nav dp-npp-tabs" role="tablist" data-tabs></div>
+      <div class="dp-pill-nav dp-npp-tabs dp-npp-tabs-4" role="tablist" data-tabs></div>
       <div data-filters></div>
       <div class="dp-npp-toolbar" data-toolbar></div>
       <div data-list></div>
@@ -245,6 +324,14 @@ export async function render({ container, query }) {
           (!f.st || (f.st === "active") === !!p.is_active) &&
           (!f.joined || (f.joined === "yes") === !!p.participated) &&
           matchesAll([p.point_name, p.phone, p.address_line, p.staff_name, p.name], f.q)
+      );
+    }
+    if (tab === "payouts") {
+      return (currentPay().rows || []).filter(
+        (r) =>
+          (!f.st || r.status === f.st) &&
+          (!f.owner || r.owner === f.owner) &&
+          matchesAll([r.point_name, r.point_phone, r.program_name, r.staff_name, r.display_point], f.q)
       );
     }
     return currentParts().filter(
@@ -315,6 +402,81 @@ export async function render({ container, query }) {
     </div>`;
   }
 
+  // ── Tab Trả thưởng ──
+
+  function payProgramOptions(sel) {
+    const progs = currentPay().programs || [];
+    let out = option("", "Chương trình: tất cả", sel);
+    progs.forEach((p) => {
+      const st =
+        p.status && p.status !== PROGRAM_RUNNING ? ` (${p.status === "Kết thúc" ? "đã kết thúc" : p.status})` : "";
+      out += option(p.program, `${p.program_name || p.program}${st} · ${formatNumber(p.eligible)} lượt`, sel);
+    });
+    if (sel && !progs.some((p) => p.program === sel)) out += option(sel, sel, sel); // giữ lựa chọn từ URL
+    return out;
+  }
+
+  function payStatusOptions(rows, sel) {
+    const count = {};
+    rows.forEach((r) => (count[r.status] = (count[r.status] || 0) + 1));
+    return (
+      option("", `Tất cả (${formatNumber(rows.length)})`, sel) +
+      PAY_STATUS.map((x) => option(x.value, `${x.label} (${formatNumber(count[x.value] || 0)})`, sel)).join("")
+    );
+  }
+
+  // Phụ trách = owner của lượt (NV thực hiện), kèm số lượt; sắp theo tên.
+  function payOwnerOptions(rows, sel) {
+    const owners = new Map();
+    rows.forEach((r) => {
+      const o = owners.get(r.owner) || { label: r.staff_name || r.owner || "—", n: 0 };
+      o.n += 1;
+      owners.set(r.owner, o);
+    });
+    let out = option("", "Phụ trách: tất cả", sel);
+    [...owners.entries()]
+      .sort((a, b) => a[1].label.localeCompare(b[1].label, "vi"))
+      .forEach(([user, o]) => {
+        out += option(user, `${o.label}${user === ctx.user ? " (bạn)" : ""} (${formatNumber(o.n)})`, sel);
+      });
+    if (sel && !owners.has(sel)) out += option(sel, `${sel} (0)`, sel);
+    return out;
+  }
+
+  // Thẻ tiến độ: Lần 1 x/N, Lần 2 y/N + thanh % (N = số lượt đã duyệt trong lọc chương trình).
+  function payProgress() {
+    const d = currentPay();
+    const t = d.totals || {};
+    const total = Number(t.eligible) || 0;
+    const sel = S.f.payouts.program;
+    const prog = sel ? (d.programs || []).find((p) => p.program === sel) : null;
+    const stat = (n, paid) => {
+      const pct = total ? Math.round((paid / total) * 1000) / 10 : 0;
+      return `<div class="dp-pay-stat">
+        <div class="dp-pay-stat-top"><span class="dp-pay-stat-label">Lần ${n}</span><b>${esc(
+          pct.toLocaleString("vi-VN")
+        )}%</b></div>
+        <div class="dp-pay-stat-val"><b>${formatNumber(paid)}</b>/${formatNumber(total)}</div>
+        <div class="dp-progress-track"><div class="dp-progress-bar" style="width:${Math.min(100, pct)}%"></div></div>
+      </div>`;
+    };
+    const reward = prog ? Number(prog.reward_per_point) || 0 : 0;
+    const sub = prog
+      ? [
+          prog.start_date ? `${formatDate(prog.start_date)} – ${formatDate(prog.end_date)}` : "",
+          reward ? `${formatVND(reward)}/điểm` : "",
+        ].filter(Boolean)
+      : [];
+    return `<div class="dp-pay-progress">
+      <div class="dp-pay-progress-head">
+        <span class="dp-pay-progress-title">${icon("coins")} ${esc(prog ? prog.program_name || prog.program : "Mọi chương trình")}</span>
+        <span class="dp-pay-progress-n">${formatNumber(total)} lượt đã duyệt</span>
+      </div>
+      ${sub.length ? `<div class="dp-pay-progress-sub">${icon("calendar")} ${esc(sub.join(" · "))}</div>` : ""}
+      <div class="dp-pay-stats">${stat(1, Number(t.paid_1) || 0)}${stat(2, Number(t.paid_2) || 0)}</div>
+    </div>`;
+  }
+
   // ── Vẽ ──
 
   function drawHead() {
@@ -344,7 +506,7 @@ export async function render({ container, query }) {
 
   function drawTabs() {
     const t = S.data.totals || {};
-    const count = { staff: t.staff, points: t.points, programs: t.programs };
+    const count = { staff: t.staff, points: t.points, programs: t.programs, payouts: t.approved };
     el("tabs").innerHTML = TABS.map(
       (x) =>
         `<button type="button" class="dp-pill${x.key === S.tab ? " dp-active" : ""}" role="tab" aria-selected="${
@@ -391,6 +553,23 @@ export async function render({ container, query }) {
               option("no", `Chưa tham gia (${formatNumber(pts.length - joined)})`, f.joined)
           )}
         </div>`;
+    } else if (S.tab === "payouts") {
+      const rows = currentPay().rows || [];
+      el("filters").innerHTML = `
+        <div class="dp-filter-row dp-filter-one">${selectBox("program", "Chương trình", payProgramOptions(f.program), true)}</div>
+        ${payProgress()}
+        ${searchBox(f.q, "Tìm điểm, SĐT, nhân viên")}
+        <div class="dp-filter-row dp-filter-two">
+          ${selectBox("st", "Trạng thái trả thưởng", payStatusOptions(rows, f.st))}
+          ${selectBox("owner", "Phụ trách", payOwnerOptions(rows, f.owner))}
+        </div>
+        ${
+          rows.length >= PAY_LIMIT
+            ? `<div class="dp-field-hint dp-npp-hint">${icon(
+                "circle-info"
+              )} Đang hiện ${formatNumber(PAY_LIMIT)} lượt đầu — chọn chương trình để xem đủ.</div>`
+            : ""
+        }`;
     } else {
       const rows = currentParts();
       const pt = f.point ? pointsByName.get(f.point) : null;
@@ -428,7 +607,7 @@ export async function render({ container, query }) {
           : ""
       }
       ${
-        S.tab === "staff"
+        noMulti(S.tab)
           ? ""
           : `<button type="button" class="dp-tool-btn${S.multi ? " dp-active" : ""}" data-multi aria-pressed="${
               S.multi
@@ -447,6 +626,11 @@ export async function render({ container, query }) {
         ? emptyState("Không có điểm bán phù hợp", "🔍", "Thử đổi bộ lọc hoặc bấm Xoá lọc")
         : emptyState("NPP chưa có điểm bán", "🏪", "Nhân viên tạo điểm trưng bày trên ứng dụng này");
     }
+    if (tab === "payouts") {
+      return (currentPay().rows || []).length
+        ? emptyState("Không có lượt phù hợp", "🔍", "Thử đổi bộ lọc hoặc bấm Xoá lọc")
+        : emptyState("Chưa có lượt đã duyệt", "💰", "Lượt tham gia được duyệt sẽ hiện ở đây để theo dõi trả thưởng");
+    }
     return currentParts().length
       ? emptyState("Không có lượt tham gia phù hợp", "🔍", "Thử đổi chương trình hoặc bộ lọc")
       : emptyState("Chưa có lượt tham gia", "📦", "Nhân viên đăng ký điểm tham gia chương trình");
@@ -454,11 +638,12 @@ export async function render({ container, query }) {
 
   function drawList() {
     const rows = rowsFor(S.tab);
-    S.visible = S.tab === "staff" ? [] : rows;
+    S.visible = noMulti(S.tab) ? [] : rows;
     drawToolbar(rows.length);
     let renderRow = staffRow;
     if (S.tab === "points") renderRow = (p) => pointRow(p, S.multi, S.sel.has(p.name));
     else if (S.tab === "programs") renderRow = (r) => partRow(r, S.multi, S.sel.has(r.name));
+    else if (S.tab === "payouts") renderRow = (r) => payRow(r, payOwner(r), !S.f.payouts.program);
     el("list").innerHTML = rows.length
       ? moreList({ rows, render: (slice) => slice.map(renderRow).join("") })
       : emptyFor(S.tab);
@@ -473,7 +658,7 @@ export async function render({ container, query }) {
   }
 
   function updateBar() {
-    const on = S.multi && S.tab !== "staff";
+    const on = S.multi && !noMulti(S.tab);
     root.classList.toggle("dp-bulk-pad", on);
     if (!on) {
       bar.hide();
@@ -509,7 +694,7 @@ export async function render({ container, query }) {
     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }
 
-  // Chuyển tab (kèm bộ lọc mới nếu có); tab Chương trình nạp lượt khi cần.
+  // Chuyển tab (kèm bộ lọc mới nếu có); tab Chương trình / Trả thưởng nạp dữ liệu khi cần.
   async function goTab(key, filters) {
     if (!isTab(key)) return;
     if (filters) S.f[key] = { ...blank(key), ...filters };
@@ -517,13 +702,16 @@ export async function render({ container, query }) {
     S.tab = key;
     syncUrl();
     drawTabs();
-    if (key === "programs" && !S.parts.has(S.f.programs.program || "")) {
+    const needLoad =
+      (key === "programs" && !S.parts.has(S.f.programs.program || "")) ||
+      (key === "payouts" && !S.pay.has(S.f.payouts.program || ""));
+    if (needLoad) {
       el("filters").innerHTML = "";
       el("toolbar").innerHTML = "";
       el("list").innerHTML = skeleton(72, 4);
       bar.hide();
       try {
-        await ensureParts();
+        await (key === "programs" ? ensureParts() : ensurePay());
       } catch (err) {
         toastError(err.message);
       }
@@ -564,6 +752,7 @@ export async function render({ container, query }) {
   async function afterMutation() {
     S.sel.clear();
     S.parts.clear();
+    S.pay.clear();
     partsByName.clear();
     try {
       await loadData();
@@ -665,16 +854,17 @@ export async function render({ container, query }) {
     const key = select.dataset.f;
     S.f[S.tab][key] = select.value;
     syncUrl();
-    if (S.tab === "programs" && key === "program") {
+    if ((S.tab === "programs" || S.tab === "payouts") && key === "program") {
+      const tab = S.tab;
       const program = select.value;
       el("list").innerHTML = skeleton(72, 4);
       try {
-        await ensureParts();
+        await (tab === "programs" ? ensureParts() : ensurePay());
       } catch (err) {
         toastError(err.message);
       }
-      if (S.tab !== "programs" || S.f.programs.program !== program) return; // đã đổi tiếp
-      drawFilters(); // số đếm Phụ trách / Trạng thái theo chương trình mới
+      if (S.tab !== tab || S.f[tab].program !== program) return; // đã đổi tiếp
+      drawFilters(); // số đếm Phụ trách / Trạng thái (+ thẻ tiến độ) theo chương trình mới
     }
     drawList();
   });

@@ -690,6 +690,88 @@ body.dp-sheet-open { overflow: hidden; }
 .dp-npp-home-stats b.is-warn { color: var(--dp-warning); }
 .dp-npp-home-stats span { display: block; font-size: 0.64rem; font-weight: 600; color: var(--dp-text-3); line-height: 1.25; }
 
+/* ── Trả thưởng (doc/09 §5): thẻ Lần 1/2 ở chi tiết lượt, sheet chọn ảnh thư viện, tab tiến độ ── */
+.dp-pay-card { margin-bottom: 1rem; }
+.dp-pay-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.6rem; }
+.dp-pay-card-head .dp-card-heading { margin: 0; }
+.dp-pay-reward { font-size: 0.8rem; color: var(--dp-text-2); margin-bottom: 0.6rem; }
+.dp-pay-reward i { color: var(--dp-text-3); margin-right: 3px; }
+.dp-pay-row { border: 1px solid var(--dp-border); border-radius: var(--dp-radius-md); padding: 0.75rem; background: var(--dp-surface-2); }
+.dp-pay-row + .dp-pay-row { margin-top: 0.6rem; }
+.dp-pay-row.is-paid { background: #f0fdf4; border-color: #bbf7d0; }
+.dp-pay-row-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.dp-pay-round { font-weight: 800; font-size: 0.92rem; }
+.dp-pay-ok { display: inline-flex; align-items: center; gap: 0.35rem; color: #065f46; font-weight: 700; font-size: 0.88rem; }
+.dp-pay-none { color: var(--dp-text-3); font-weight: 600; font-size: 0.85rem; }
+.dp-pay-meta { margin-top: 0.3rem; font-size: 0.78rem; color: var(--dp-text-2); }
+.dp-pay-meta i { color: var(--dp-text-3); margin-right: 2px; }
+.dp-pay-note { margin-top: 0.3rem; font-size: 0.82rem; font-style: italic; white-space: pre-line; overflow-wrap: anywhere; }
+.dp-pay-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 0.4rem; margin-top: 0.6rem; }
+.dp-pay-thumb { position: relative; aspect-ratio: 1; min-height: 44px; padding: 0; border: none; border-radius: var(--dp-radius-sm);
+  overflow: hidden; background: var(--dp-surface); cursor: zoom-in; }
+.dp-pay-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dp-pay-thumb:focus-visible { outline: 2px solid var(--dp-season-1); outline-offset: 2px; }
+.dp-pay-acts { display: flex; gap: 0.5rem; margin-top: 0.65rem; }
+.dp-pay-acts > * { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0.55rem 0.75rem; font-size: 0.88rem; box-shadow: none; }
+.dp-pay-del { display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--dp-surface); color: var(--dp-danger);
+  border: 1px solid #fecaca; border-radius: var(--dp-radius-md); font-family: inherit; font-weight: 700; cursor: pointer; }
+.dp-pay-del:active { transform: scale(0.98); }
+.dp-pay-del:disabled { opacity: 0.5; cursor: default; }
+.dp-pay-hint { margin-top: 0.4rem; }
+
+/* Chip "Trả thưởng N/2" (danh sách lượt) */
+.dp-part-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 2px; }
+.dp-pay-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 50px; font-size: 0.7rem; font-weight: 700;
+  padding: 4px 10px; white-space: nowrap; }
+.dp-pay-chip.is-0 { background: #fef3c7; color: #92400e; }
+.dp-pay-chip.is-1 { background: #dbeafe; color: #1e40af; }
+.dp-pay-chip.is-2 { background: #d1fae5; color: #065f46; }
+
+/* Sheet ghi trả thưởng: ô ngày 16px (iOS không phóng to), lưới ảnh chọn từ thư viện, nút xoá ảnh vùng chạm 44px */
+.dp-sheet .dp-input { font-size: 16px; }
+/* Tiêu đề "💰 Trả thưởng lần N — <điểm bán>": cho xuống tối đa 2 dòng — tên điểm dài không bị cắt mất (tránh ghi nhầm điểm). */
+.dp-pay-sheet .dp-sheet-head .dp-modal-title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; line-height: 1.3; }
+.dp-pay-date { display: block; min-height: 44px; text-align: left; -webkit-appearance: none; appearance: none; }
+.dp-pay-date::-webkit-date-and-time-value { text-align: left; }
+.dp-pay-photo-label { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.dp-pay-count { font-size: 0.75rem; font-weight: 700; color: var(--dp-text-2); }
+.dp-pay-grid { margin-top: 0; }
+.dp-pay-add { min-height: 44px; }
+.dp-pay-rm { top: 2px; right: 2px; width: 36px; height: 36px; font-size: 0.85rem; }
+.dp-pay-rm::before { content: ""; position: absolute; inset: -6px; }
+.dp-pay-rm:disabled { opacity: 0.4; cursor: default; }
+
+/* Tab Trả thưởng (Quản lý NPP): thẻ tiến độ Lần 1/2 + chip L1/L2 trên thẻ lượt */
+.dp-filter-row.dp-filter-one { grid-template-columns: 1fr; }
+.dp-filter-row.dp-filter-two { grid-template-columns: 1fr 1fr; } /* desktop: 2 ô chia đều, không chừa cột trống */
+/* 4 pill Quản lý NPP (thêm Trả thưởng) không vừa 1 hàng trên điện thoại → lưới 2×2, mọi tab đều thấy, không
+   phải cuộn ngang. CHỈ thanh 4 pill (.dp-npp-tabs-4) — màn NV (3 pill) giữ 1 hàng như cũ. */
+@media (max-width: 519px) {
+  .dp-npp-tabs.dp-npp-tabs-4 { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+  .dp-npp-tabs.dp-npp-tabs-4 .dp-pill { justify-content: center; min-width: 0; }
+}
+.dp-pay-progress { margin-bottom: 0.6rem; padding: 0.85rem; background: var(--dp-surface); border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md); box-shadow: var(--dp-shadow-sm); }
+.dp-pay-progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.dp-pay-progress-title { min-width: 0; font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-pay-progress-title i { color: var(--dp-season-1); margin-right: 3px; }
+.dp-pay-progress-n { flex-shrink: 0; font-size: 0.78rem; font-weight: 600; color: var(--dp-text-2); }
+.dp-pay-progress-sub { margin-top: 2px; font-size: 0.78rem; color: var(--dp-text-2); }
+.dp-pay-progress-sub i { color: var(--dp-text-3); margin-right: 3px; }
+.dp-pay-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.65rem; }
+.dp-pay-stat { padding: 0.6rem 0.7rem; background: var(--dp-surface-2); border-radius: var(--dp-radius-sm); }
+.dp-pay-stat-top { display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; }
+.dp-pay-stat-label { font-weight: 700; color: var(--dp-text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+.dp-pay-stat-top b { color: var(--dp-season-1); }
+.dp-pay-stat-val { margin-top: 2px; font-size: 0.85rem; color: var(--dp-text-2); }
+.dp-pay-stat-val b { font-size: 1.35rem; font-weight: 800; color: var(--dp-text); }
+.dp-pay-stat .dp-progress-track { margin-top: 0.4rem; }
+.dp-pay-side { gap: 5px; }
+.dp-pay-lchip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 100px; background: var(--dp-surface-2);
+  color: var(--dp-text-3); font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+.dp-pay-lchip.is-paid { background: #d1fae5; color: #065f46; }
+
 /* ── Utility ── */
 .dp-flex { display: flex; } .dp-items-center { align-items: center; } .dp-justify-between { justify-content: space-between; }
 .dp-gap-2 { gap: 0.5rem; } .dp-text-muted { color: var(--dp-text-2); } .dp-text-sm { font-size: 0.85rem; }

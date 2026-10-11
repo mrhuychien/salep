@@ -10,3 +10,4 @@ salep.patches.v0_0_3.add_perf_indexes
 salep.patches.v0_0_4.grant_transfer_perms
 salep.patches.v0_0_4.backfill_employment_status
 salep.patches.v0_0_4.add_assignment_indexes
+salep.patches.v0_0_5.setup_reward_payout

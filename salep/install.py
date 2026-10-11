@@ -39,6 +39,12 @@ PERMISSIONS = {
         "Channel Manager": dict(read=1, write=0, create=0, delete=0, if_owner=0),
         "System Manager": dict(read=1, write=1, create=1, delete=1, if_owner=0),
     },
+    # Trả thưởng 2 lần (doc/09 §2): NV / chủ NPP ghi qua salep.api.payout (đã scope) →
+    # không cấp quyền cho Sales Staff; QL kênh được sửa/xoá trên Desk.
+    "Display Reward Payout": {
+        "Channel Manager": dict(read=1, write=1, create=1, delete=1, if_owner=0),
+        "System Manager": dict(read=1, write=1, create=1, delete=1, if_owner=0),
+    },
 }
 
 
@@ -70,6 +76,13 @@ def _add_indexes():
         add_assignment_indexes.execute()
     except Exception:
         frappe.log_error(title="salep: tạo index thất bại")
+    # Unique (participation, payout_round) — doc/09 R2. Tách riêng để lỗi index khác không bỏ sót.
+    try:
+        from salep.patches.v0_0_5 import setup_reward_payout
+
+        setup_reward_payout.add_unique_index()
+    except Exception:
+        frappe.log_error(title="salep: tạo unique index trả thưởng thất bại")
 
 
 def _create_roles():

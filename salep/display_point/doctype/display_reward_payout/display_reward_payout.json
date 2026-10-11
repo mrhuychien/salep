@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "DRP-.YYYY.-.#####",
+ "creation": "2026-10-11 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "participation",
+  "payout_round",
+  "payout_date",
+  "display_point",
+  "promotion_program",
+  "distributor",
+  "photos",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "participation",
+   "fieldtype": "Link",
+   "label": "Lượt tham gia",
+   "options": "Display Participation",
+   "reqd": 1,
+   "search_index": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Chỉ lượt đã duyệt mới trả thưởng được"
+  },
+  {
+   "fieldname": "payout_round",
+   "fieldtype": "Int",
+   "label": "Lần trả",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "1 hoặc 2 — mỗi lượt mỗi lần một bản ghi"
+  },
+  {
+   "fieldname": "payout_date",
+   "fieldtype": "Date",
+   "label": "Ngày trả thưởng",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "display_point",
+   "fieldtype": "Link",
+   "label": "Điểm bán",
+   "options": "Display Point",
+   "read_only": 1,
+   "description": "Lấy từ lượt tham gia"
+  },
+  {
+   "fieldname": "promotion_program",
+   "fieldtype": "Link",
+   "label": "Chương trình",
+   "options": "Promotion Program",
+   "read_only": 1,
+   "search_index": 1,
+   "in_standard_filter": 1,
+   "description": "Lấy từ lượt tham gia"
+  },
+  {
+   "fieldname": "distributor",
+   "fieldtype": "Link",
+   "label": "NPP",
+   "options": "Customer",
+   "read_only": 1,
+   "search_index": 1,
+   "in_standard_filter": 1,
+   "description": "Lấy từ lượt tham gia"
+  },
+  {
+   "fieldname": "photos",
+   "fieldtype": "Table",
+   "label": "Ảnh trả thưởng",
+   "options": "Display Photo",
+   "description": "Ảnh chuyển khoản / biên nhận (1–10 ảnh, không cần GPS)"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "make_attachments_public": 1,
+ "modified": "2026-10-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Display Point",
+ "name": "Display Reward Payout",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [],
+ "search_fields": "participation,promotion_program,distributor",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

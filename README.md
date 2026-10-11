@@ -21,6 +21,7 @@ UI của **portal NPP (app nhà phân phối) đã có sẵn**, chỉ gọi sang
 | Promotion Program | Chương trình trưng bày | `CT-.YYYY.-.###` |
 | Display Participation | Lượt tham gia (transaction, có workflow) | `DPT-.YYYY.-.#####` |
 | Display Point Transfer | Nhật ký bàn giao điểm bán (đổi NV phụ trách: gán lại / nghỉ việc), chỉ ghi bằng code | `hash` |
+| Display Reward Payout | Trả thưởng điểm bán Lần 1 / Lần 2 cho lượt đã duyệt: ngày trả, ảnh (bảng con `Display Photo`, `parentfield = photos`), ghi chú | `DRP-.YYYY.-.#####` |
 
 Sales Staff Profile có thêm `employment_status` (Đang làm / Nghỉ việc), `left_on`, `handover_to`.
 
@@ -29,7 +30,8 @@ Sales Staff Profile có thêm `employment_status` (Đang làm / Nghỉ việc), 
 - Permissions cấp bằng `add_permission()` trong `salep/install.py` (KHÔNG ship custom_docperm.json).
 - Workflow **Display Participation Approval** + Roles cài bằng patch idempotent (`salep/patches/v0_0_1/`).
 - `patches.txt` có header `[pre_model_sync]` / `[post_model_sync]`.
-- DB index: `Display Point.phone`, `Display Point (distributor, owner)`, `(display_point, promotion_program)` trên lượt.
+- DB index: `Display Point.phone`, `Display Point (distributor, owner)`, `(display_point, promotion_program)` trên lượt;
+  unique `Display Reward Payout (participation, payout_round)`.
 
 ## API (portal gọi)
 - `salep.api.point.create_point` / `.list_my_points`
@@ -40,6 +42,9 @@ Sales Staff Profile có thêm `employment_status` (Đang làm / Nghỉ việc), 
 - `salep.api.npp_manage.npp_overview` / `.npp_participations` / `.npp_staff_history` /
   `.npp_assign_points` / `.npp_set_points_active` / `.npp_offboard_staff` — chủ NPP trên `/dp`
   (gate `_require_npp`: chỉ tài khoản NPP, tự scope theo NPP của mình)
+- `salep.api.payout.get_payouts` / `.record` (POST) / `.remove` (POST) — trả thưởng 1 lượt (quyền
+  `can_view` / `can_record` / `can_delete`) · `.npp_payout_progress` — tiến độ trả thưởng của NPP mình
+  (gate `_require_npp`)
 
 ## Quản lý NV phụ trách điểm bán (chủ NPP) — [`doc/08`](doc/08_npp_staff_assignment.md)
 NV phụ trách điểm = `Display Point.owner`, NV phụ trách lượt = `Display Participation.owner`.
@@ -54,6 +59,22 @@ gọi thẳng hàm lõi sau `require_customer()`, `/dp` gọi các method `npp_*
   `handover_to`), khoá tài khoản NV (trừ tài khoản chủ NPP). Chạy lại = quét phần còn sót.
 - Chủ NPP đọc được mọi điểm/lượt của NPP mình qua `portal.get_point` / `.get_participation` /
   `.list_program_participations` (mỗi lượt kèm `owner` + `staff_name`).
+
+## Trả thưởng điểm bán (2 lần) — [`doc/09`](doc/09_reward_payout.md)
+Mỗi lượt **đã duyệt** được trả thưởng **2 lần**; mỗi lần 1 bản ghi `Display Reward Payout` (ngày trả,
+1–10 ảnh chọn từ thư viện — ảnh chuyển khoản / biên nhận, **không** GPS — và ghi chú). Logic nằm một chỗ
+ở `salep.api.payout` (hàm lõi `payout_map`, `participation_payouts`, `record_payout`, `delete_payout`,
+`progress`); app `npp` (`/npp` Khuyến mại, `/ql-km`) xác định phạm vi rồi gọi hàm lõi, `/dp` gọi các
+method whitelisted.
+- Chỉ lượt `Đã duyệt`; mỗi (lượt, lần) một bản ghi — ghi lại lần đã có = **cập nhật** (Version ghi lịch sử).
+- Lần 2 cần có Lần 1, ngày Lần 2 ≥ ngày Lần 1; ngày trả bắt buộc, không ở tương lai.
+- Ảnh phải là file đã upload lên site (`/files/…`, `/private/files/…`) và có bản ghi `File`.
+- Ghi/sửa: NV phụ trách lượt, chủ NPP của lượt, Channel/System Manager. Xoá: chủ NPP, Channel/System
+  Manager; không xoá Lần 1 khi đã có Lần 2.
+- `portal.get_participation` trả thêm `payouts` / `can_record_payout` / `can_delete_payout`;
+  `portal.list_my_participations` thêm `payouts_done` (0/1/2) mỗi lượt.
+- Tiến độ (`progress`): tổng + từng chương trình (Lần 1 x/N, Lần 2 y/N, %) và danh sách lượt (chưa trả
+  trước), tối đa 5000 dòng.
 
 ## SPA Portal NVBH — `/dp` (frappe-portal-spa)
 www page `salep/www/dp.{py,html}`, asset `salep/public/salep/` → `/assets/salep/salep/`.
@@ -87,6 +108,12 @@ role **Channel Manager** cho QL kênh.
 > (cấp quyền, backfill `Đang làm`, index `(distributor, owner)`). Deploy cả 2 app `salep` + `npp`:
 > `bench --site <site> migrate && bench build && bench restart`, rồi refresh. Chưa migrate → các nút
 > gán/nghỉ việc báo "Cần cập nhật app salep (bench migrate)…".
+
+> **Cập nhật doc/09 (trả thưởng 2 lần) BẮT BUỘC `bench migrate`**: tạo DocType `Display Reward Payout`
+> và chạy patch `v0_0_5.setup_reward_payout` (cấp quyền System Manager / Channel Manager, unique
+> `(participation, payout_round)`). Deploy cả 2 app `salep` + `npp`:
+> `bench --site <site> migrate && bench build && bench restart`, rồi refresh (`SHELL_BUILD` = `dp-pay-r2`).
+> Chưa migrate → ghi/xoá trả thưởng báo "Cần cập nhật app salep (bench migrate)…", phần xem coi như chưa trả.
 
 ## Còn lại (làm sau)
 - Print Format (module Display Point) — export khi có mẫu.
