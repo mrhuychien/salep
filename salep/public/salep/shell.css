@@ -564,6 +564,29 @@ a.dp-kpi-card:active { transform: scale(0.97); }
   cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
 .dp-tool-btn:active { transform: scale(0.97); }
 .dp-tool-btn.dp-active { border-color: var(--dp-season-1); color: var(--dp-season-1); box-shadow: 0 0 0 3px var(--dp-season-glow); }
+/* Nút Xuất Excel (doc/10). .is-icon = thanh chật (Xoá lọc + Chọn nhiều): điện thoại chỉ hiện icon 44×44
+   (aria-label giữ tên nút), từ 768px hiện lại nhãn. .is-icon-xs = có Chọn nhiều: chỉ icon khi màn < 360px. */
+.dp-xl-btn { flex-shrink: 0; }
+.dp-xl-btn i { color: #15803d; }
+.dp-xl-btn:disabled { opacity: 0.65; cursor: progress; }
+.dp-xl-btn.is-icon,
+.dp-xl-btn.is-icon-xs { width: 44px; padding: 0; justify-content: center; }
+.dp-xl-btn.is-icon .dp-xl-label,
+.dp-xl-btn.is-icon-xs .dp-xl-label { display: none; }
+@media (min-width: 360px) {
+  .dp-xl-btn.is-icon-xs { width: auto; padding: 0 0.85rem; }
+  .dp-xl-btn.is-icon-xs .dp-xl-label { display: inline; }
+}
+/* Thanh chật trên điện thoại (.is-crowded = Xoá lọc + Chọn nhiều + Xuất Excel): số đếm lên 1 dòng riêng, các nút
+   xuống dòng dưới căn phải — không để số đếm bị ép còn vài px / đè dưới nút ở 320–390px. Từ 768px: 1 hàng. */
+.dp-npp-toolbar.is-crowded { flex-wrap: wrap; justify-content: flex-end; row-gap: 0.35rem; }
+.dp-npp-toolbar.is-crowded .dp-npp-count { flex: 1 0 100%; }
+@media (min-width: 768px) {
+  .dp-xl-btn.is-icon { width: auto; padding: 0 0.85rem; }
+  .dp-xl-btn.is-icon .dp-xl-label { display: inline; }
+  .dp-npp-toolbar.is-crowded { flex-wrap: nowrap; }
+  .dp-npp-toolbar.is-crowded .dp-npp-count { flex: 1; }
+}
 
 /* Thẻ danh sách chọn được: ô tick + trạng thái đã chọn */
 .dp-npp-item { min-height: 64px; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }

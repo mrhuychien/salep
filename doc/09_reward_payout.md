@@ -109,12 +109,18 @@ khi `Đã duyệt`, else `None`), `can_record_payout`, `can_delete_payout`.
            "distributor_name", "promotion_program", "program_name", "owner", "staff_name",
            "round_1": {"name", "payout_date", "photos"} | None,
            "round_2": {...} | None,
-           "status": "none" | "r1" | "done"}]}
+           "status": "none" | "r1" | "done",
+           // doc/10 §4 (xuất Excel):
+           "reward_per_point", "point_tax_code", "point_bank_account_name", "point_bank_account_no",
+           "point_bank_name"}]}
 ```
 - `eligible` = số lượt `Đã duyệt` (trong phạm vi + lọc chương trình); `pct_*` = paid/eligible×100 (1 số lẻ).
 - `programs`: chỉ chương trình có ≥1 lượt đã duyệt trong phạm vi; sắp "Đang chạy" trước, rồi `start_date` giảm dần.
 - `rows`: lượt đã duyệt, sắp chưa trả trước (`none`, `r1`, `done`), rồi `point_name`; `photos` = số ảnh;
   `staff_name` theo Sales Staff Profile của owner (không có → fullname/user). Giới hạn 5000 dòng.
+- `rows[i].reward_per_point` = thưởng/điểm của chương trình của lượt (số, rỗng → 0); `point_tax_code`,
+  `point_bank_*` = MST + tài khoản nhận thưởng của điểm bán (chuỗi hoặc `None`) — lấy trong CÙNG lô truy
+  vấn Display Point (không N+1). Wrapper app `npp` trả nguyên `rows` nên `/npp`, `/ql-km` có luôn các key này.
 
 ## 4. API — app `npp`
 

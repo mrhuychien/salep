@@ -55,6 +55,10 @@ _PAYOUT_FIELDS = [
 ]
 # Sắp danh sách tiến độ: chưa trả trước, rồi đã trả lần 1, rồi đủ 2 lần.
 _STATUS_ORDER = {"none": 0, "r1": 1, "done": 2}
+# Điểm bán trên dòng tiến độ: tên/SĐT + MST + tài khoản nhận thưởng (cột Excel, doc/10 §4).
+_POINT_FIELDS = [
+    "name", "point_name", "phone", "tax_code", "bank_account_name", "bank_account_no", "bank_name",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -580,15 +584,17 @@ def progress(distributor=None, program=None):
     ))
 
     # Tên/SĐT điểm bán của các lượt được chọn (theo lô) — cần tên điểm để sắp xếp trước khi cắt 5000.
+    # Cùng truy vấn lấy luôn MST + tài khoản nhận thưởng cho file Excel (doc/10 §4) — không N+1.
     points = {}
     for chunk in _chunks({p.display_point for p in selected if p.display_point}):
         for pt in frappe.get_all(
-            "Display Point", filters={"name": ("in", chunk)}, fields=["name", "point_name", "phone"]
+            "Display Point", filters={"name": ("in", chunk)}, fields=_POINT_FIELDS
         ):
             points[pt.name] = pt
     rows = []
     for p in selected:
         pt = points.get(p.display_point) or {}
+        pg = progs.get(p.promotion_program) or {}
         rounds = pmap.get(p.name) or {}
         rows.append({
             "participation": p.name,
@@ -597,10 +603,15 @@ def progress(distributor=None, program=None):
             "point_phone": pt.get("phone"),
             "distributor": p.distributor,
             "promotion_program": p.promotion_program,
-            "program_name": (progs.get(p.promotion_program) or {}).get("program_name") or p.promotion_program,
+            "program_name": pg.get("program_name") or p.promotion_program,
             "owner": p.owner,
             "_rounds": rounds,
             "status": _status_of(rounds),
+            "reward_per_point": flt(pg.get("reward_per_point")),
+            "point_tax_code": pt.get("tax_code"),
+            "point_bank_account_name": pt.get("bank_account_name"),
+            "point_bank_account_no": pt.get("bank_account_no"),
+            "point_bank_name": pt.get("bank_name"),
         })
     rows.sort(key=lambda x: (_STATUS_ORDER[x["status"]], (x["point_name"] or "").lower(), x["participation"]))
     rows = rows[:ROWS_LIMIT]

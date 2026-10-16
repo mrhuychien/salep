@@ -1,11 +1,14 @@
 // Lịch sử hoạt động 1 nhân viên của NPP (chủ NPP — doc/08 §8): #/npp/staff/:name?t=points|parts|transfers.
 // Thẻ thông tin + KPI, Chuyển điểm bán (chọn nhiều → sheet Gán NV), Nghỉ việc (sheet bàn giao).
+// Xuất Excel (doc/10): 1 file 3 sheet Điểm bán · Tham gia · Bàn giao (toàn bộ, không chỉ phần đã vẽ).
 import { icon, emptyState } from "../lib/dom.js";
 import { esc, formatDate, formatDateTime, formatNumber, statusBadge } from "../lib/format.js";
 import { call } from "../lib/api.js";
-import { isNppOwner } from "../lib/store.js";
+import { ctx, isNppOwner } from "../lib/store.js";
 import { navigate } from "../lib/router.js";
 import { setHeaderTitle } from "../components/nav.js";
+import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { downloadXlsx, fileStamp } from "../components/xlsx.js";
 import {
   TARGET_NPP,
   initials,
@@ -25,6 +28,67 @@ const TABS = [
 ];
 const REASON_BADGE = { "Gán lại": "dp-badge-primary", "Nghỉ việc": "dp-badge-warning" };
 const TRANSFER_ACTIONS = [{ act: "assign", label: "Chuyển điểm đã chọn", icon: "right-left" }];
+const XL_COOLDOWN = 800; // ms khoá thêm sau khi xuất: file nhỏ dựng xong nhanh hơn 1 lần chạm đúp
+
+// ── Xuất Excel (doc/10 §3): cột Điểm bán / Tham gia giống tab #/npp (views/npp-manage.js) ──
+const xc = (header, value, type = "text", width) => ({ header, value, type, width });
+const XL_STT = xc("STT", (_, i) => i + 1, "int", 6);
+const geo = (v) => (Number(v) ? Number(v) : null); // 0 = chưa có toạ độ → ô trống
+const ownerLabel = (r) => (r.staff_name ? `${r.staff_name}${r.staff_left ? " (đã nghỉ)" : ""}` : "");
+const XL_POINTS = [
+  XL_STT,
+  xc("Mã điểm", (p) => p.name),
+  xc("Tên điểm bán", (p) => p.point_name),
+  xc("SĐT", (p) => p.phone),
+  xc("Địa chỉ", (p) => p.address_line),
+  xc("Mã số thuế", (p) => p.tax_code),
+  xc("NV phụ trách", ownerLabel),
+  xc("Trạng thái", (p) => (p.is_active ? "Hoạt động" : "Ngừng")),
+  xc("Số lượt tham gia", (p) => p.participations, "int"),
+  xc("Lượt đã duyệt", (p) => p.approved, "int"),
+  xc("Chủ TK nhận thưởng", (p) => p.bank_account_name),
+  xc("Số TK", (p) => p.bank_account_no),
+  xc("Ngân hàng", (p) => p.bank_name),
+  xc("Vĩ độ", (p) => geo(p.latitude), "number"),
+  xc("Kinh độ", (p) => geo(p.longitude), "number"),
+  xc("Ngày tạo", (p) => p.creation, "date"),
+];
+const XL_PARTS = [
+  XL_STT,
+  xc("Mã lượt", (r) => r.name),
+  xc("Mã điểm", (r) => r.display_point),
+  xc("Điểm bán", (r) => r.point_name || r.display_point),
+  xc("SĐT điểm", (r) => r.point_phone),
+  xc("Chương trình", (r) => r.program_name || r.promotion_program),
+  xc("NV phụ trách", ownerLabel),
+  xc("Trạng thái duyệt", (r) => r.workflow_state),
+  xc("Lý do từ chối", (r) => r.reject_reason),
+  xc("Cập nhật", (r) => r.modified, "datetime"),
+  xc("Vĩ độ", (r) => geo(r.latitude), "number"),
+  xc("Kinh độ", (r) => geo(r.longitude), "number"),
+];
+const XL_TRANSFERS = [
+  XL_STT,
+  xc("Mã bàn giao", (x) => x.name),
+  xc("Thời gian", (x) => x.creation, "datetime"),
+  xc("Loại", (x) => (x.direction === "in" ? "Nhận điểm" : "Chuyển đi")),
+  xc("Mã điểm", (x) => x.display_point),
+  xc("Điểm bán", (x) => x.point_name || x.display_point),
+  xc("Nhận từ / Chuyển cho", (x) => x.counterpart_label),
+  xc("Lý do", (x) => x.reason || "Gán lại"),
+  xc("Lượt chuyển kèm", (x) => x.participations_moved, "int"),
+  xc("Ghi chú", (x) => x.note),
+  xc("Thực hiện bởi", (x) => x.by_label),
+];
+
+// Nút Xuất Excel trên thanh công cụ; is-icon = thanh chật (có Chọn nhiều) → điện thoại chỉ hiện icon.
+// running = đang dựng file (spinner); blocked = vừa xuất xong (nhịp chống chạm đúp).
+function exportBtn(compact, running, blocked = false) {
+  return `<button type="button" class="dp-tool-btn dp-xl-btn${compact ? " is-icon" : ""}" data-export
+    aria-label="Xuất Excel" title="Xuất Excel"${running ? ` disabled aria-busy="true"` : blocked ? " disabled" : ""}>${
+      running ? icon("spinner", "dp-spin") : icon("file-excel")
+    }<span class="dp-xl-label">Xuất Excel</span></button>`;
+}
 
 function infoRow(ic, content) {
   return `<div class="dp-info-row">${icon(ic)}<div class="dp-info-main">${content}</div></div>`;
@@ -167,12 +231,14 @@ export async function render({ container, params, query }) {
   const canTransfer = points.length > 0;
   const canOffboard = !st.resigned && !st.is_self;
 
-  // Danh sách NV (chọn người nhận) chỉ nạp khi mở sheet Gán NV / Nghỉ việc.
-  let staffList = null;
-  async function loadStaff() {
-    if (!staffList) staffList = ((await call("salep.api.npp_manage.npp_overview")) || {}).staff || [];
-    return staffList;
+  // Tổng quan NPP chỉ nạp khi cần (1 lần): danh sách NV cho sheet Gán NV / Nghỉ việc; MST + tài khoản
+  // nhận thưởng + ngày tạo của điểm và tên NPP cho file Excel.
+  let overview = null;
+  async function loadOverview() {
+    if (!overview) overview = (await call("salep.api.npp_manage.npp_overview")) || {};
+    return overview;
   }
+  const loadStaff = async () => (await loadOverview()).staff || [];
   const reload = () => navigate(location.hash.slice(1) || "/");
 
   container.innerHTML = `
@@ -253,13 +319,70 @@ export async function render({ container, params, query }) {
     } else if (S.tab === "transfers") {
       text = `${formatNumber(transfers.length)} lần nhận / chuyển điểm`;
     }
+    const multiBtn = S.tab === "points" && canTransfer;
     el("toolbar").innerHTML = `<span class="dp-npp-count">${text}</span>${
-      S.tab === "points" && canTransfer
+      multiBtn
         ? `<button type="button" class="dp-tool-btn${S.multi ? " dp-active" : ""}" data-multi aria-pressed="${
             S.multi
           }">${icon("list-check")} Chọn nhiều</button>`
         : ""
-    }`;
+    }${exportBtn(multiBtn, exporting, cooling)}`;
+  }
+
+  // ── Xuất Excel: 1 file, 3 sheet (mọi dòng đã tải, không phụ thuộc tab / "Xem thêm") ──
+
+  let exporting = false;
+  let cooling = false; // vừa xuất xong — nhịp khoá chống chạm đúp
+  function paintExport() {
+    root.querySelectorAll("[data-export]").forEach((b) => {
+      b.outerHTML = exportBtn(b.classList.contains("is-icon"), exporting, cooling);
+    });
+  }
+
+  async function runExport() {
+    if (exporting || cooling) return;
+    const total = points.length + parts.length + transfers.length;
+    if (!total) {
+      toast("Không có dòng nào để xuất", "warning");
+      return;
+    }
+    exporting = true;
+    paintExport();
+    try {
+      // Lịch sử NV không có MST / tài khoản nhận thưởng / ngày tạo điểm → bổ sung từ tổng quan NPP
+      // (cùng phạm vi server); không tải được thì vẫn xuất với dữ liệu đang có.
+      let ov = {};
+      try {
+        ov = await loadOverview();
+      } catch {
+        ov = {};
+      }
+      const byName = new Map((ov.points || []).map((p) => [p.name, p]));
+      const phoneOf = (dp) => (pointsByName.get(dp) || byName.get(dp) || {}).phone;
+      const pointRows = points.map((p) => ({ ...byName.get(p.name), ...p }));
+      const partRows = parts.map((r) => ({
+        ...r,
+        point_phone: r.point_phone ?? phoneOf(r.display_point),
+        staff_name: st.full_name || st.user,
+        staff_left: !!st.resigned,
+      }));
+      await downloadXlsx(fileStamp(ov.customer_name || ctx.nppCustomer || "", "LichSuNhanVien"), [
+        { name: "Điểm bán", columns: XL_POINTS, rows: pointRows },
+        { name: "Tham gia", columns: XL_PARTS, rows: partRows },
+        { name: "Bàn giao", columns: XL_TRANSFERS, rows: transfers },
+      ]);
+      toastSuccess(`Đã xuất ${formatNumber(total)} dòng`);
+    } catch (err) {
+      toastError(`Không xuất được file Excel${err && err.message ? `: ${err.message}` : ""}`);
+    } finally {
+      exporting = false;
+      cooling = true;
+      paintExport();
+      setTimeout(() => {
+        cooling = false;
+        paintExport();
+      }, XL_COOLDOWN);
+    }
   }
 
   function drawList() {
@@ -360,6 +483,10 @@ export async function render({ container, params, query }) {
     }
     if (t.closest("[data-multi]")) {
       setMulti(!S.multi);
+      return;
+    }
+    if (t.closest("[data-export]")) {
+      runExport();
       return;
     }
     const row = t.closest("[data-row]");

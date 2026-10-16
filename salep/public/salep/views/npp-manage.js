@@ -2,11 +2,13 @@
 // Thẻ danh sách + lọc (đổi tab/lọc chỉ replaceState, không render lại cả màn), chế độ
 // Chọn nhiều + thanh thao tác, sheet Gán NV / chi tiết điểm. Tab Trả thưởng (doc/09 §5):
 // tiến độ Lần 1 / Lần 2 theo chương trình, bấm thẻ → chi tiết lượt để ghi. Quyền kiểm ở server.
+// Nút Xuất Excel (doc/10): mọi dòng khớp bộ lọc hiện tại của tab, dựng .xlsx ngay trên trình duyệt.
 import { icon, emptyState, skeleton } from "../lib/dom.js";
 import { esc, formatDate, formatNumber, formatVND, statusBadge, STATES } from "../lib/format.js";
 import { call } from "../lib/api.js";
 import { ctx, isNppOwner } from "../lib/store.js";
-import { toastError } from "../components/toast.js";
+import { toast, toastError, toastSuccess } from "../components/toast.js";
+import { downloadXlsx, fileStamp } from "../components/xlsx.js";
 import {
   TARGET_NPP,
   matchesAll,
@@ -27,6 +29,7 @@ const MULTI_KEY = "dp_npp_multi";
 const PARTS_LIMIT = 2000; // npp_participations trả tối đa 2000 lượt
 const PAY_LIMIT = 5000; // npp_payout_progress trả tối đa 5000 dòng (ROWS_LIMIT ở salep/api/payout.py)
 const PROGRAM_RUNNING = "Đang chạy";
+const XL_COOLDOWN = 800; // ms khoá thêm sau khi xuất: file nhỏ dựng xong nhanh hơn 1 lần chạm đúp
 
 const TABS = [
   { key: "staff", label: "Nhân viên" },
@@ -102,6 +105,83 @@ function selectBox(key, label, options, wide = false) {
 }
 
 const rowRole = (multi, on) => (multi ? `role="checkbox" aria-checked="${on}"` : `role="button"`);
+
+// ── Xuất Excel (doc/10 §2–3): cột + nhãn tiếng Việt như trên màn hình ──
+
+const XL_BASE = { staff: "NhanVien", points: "DiemBan", programs: "ThamGiaTrungBay", payouts: "TraThuong" };
+const PAY_LABEL = Object.fromEntries(PAY_STATUS.map((x) => [x.value, x.label]));
+const xc = (header, value, type = "text", width) => ({ header, value, type, width });
+const XL_STT = xc("STT", (_, i) => i + 1, "int", 6);
+const geo = (v) => (Number(v) ? Number(v) : null); // 0 = chưa có toạ độ → ô trống
+const pct = (part, total) => (Number(total) ? (Number(part) / Number(total)) * 100 : null);
+// Nhãn Phụ trách đang hiển thị (staff_name server đã dựng: tên NV / "NPP (chưa giao)" / tài khoản khác).
+const ownerLabel = (r) => (r.staff_name ? `${r.staff_name}${r.staff_left ? " (đã nghỉ)" : ""}` : "");
+const staffStatus = (s) => (s.resigned ? "Đã nghỉ" : s.active ? "Hoạt động" : "Tạm dừng");
+
+const XL_STAFF = [
+  XL_STT,
+  xc("Mã NV", (s) => s.name),
+  xc("Họ tên", (s) => s.full_name || s.user),
+  xc("SĐT (đăng nhập)", (s) => s.phone || s.user),
+  xc("CCCD", (s) => s.cccd),
+  xc("Trạng thái", staffStatus),
+  xc("Ngày nghỉ", (s) => (s.resigned ? s.left_on : null), "date"),
+  xc("Số điểm phụ trách", (s) => s.points, "int"),
+  xc("Lượt tham gia", (s) => s.participations, "int"),
+  xc("Đã duyệt", (s) => s.approved, "int"),
+  xc("Tỷ lệ duyệt %", (s) => pct(s.approved, s.participations), "percent"),
+];
+const XL_POINTS = [
+  XL_STT,
+  xc("Mã điểm", (p) => p.name),
+  xc("Tên điểm bán", (p) => p.point_name),
+  xc("SĐT", (p) => p.phone),
+  xc("Địa chỉ", (p) => p.address_line),
+  xc("Mã số thuế", (p) => p.tax_code),
+  xc("NV phụ trách", ownerLabel),
+  xc("Trạng thái", (p) => (p.is_active ? "Hoạt động" : "Ngừng")),
+  xc("Số lượt tham gia", (p) => p.participations, "int"),
+  xc("Lượt đã duyệt", (p) => p.approved, "int"),
+  xc("Chủ TK nhận thưởng", (p) => p.bank_account_name),
+  xc("Số TK", (p) => p.bank_account_no),
+  xc("Ngân hàng", (p) => p.bank_name),
+  xc("Vĩ độ", (p) => geo(p.latitude), "number"),
+  xc("Kinh độ", (p) => geo(p.longitude), "number"),
+  xc("Ngày tạo", (p) => p.creation, "date"),
+];
+const XL_PARTS = [
+  XL_STT,
+  xc("Mã lượt", (r) => r.name),
+  xc("Mã điểm", (r) => r.display_point),
+  xc("Điểm bán", (r) => r.point_name || r.display_point),
+  xc("SĐT điểm", (r) => r.point_phone),
+  xc("Chương trình", (r) => r.program_name || r.promotion_program),
+  xc("NV phụ trách", ownerLabel),
+  xc("Trạng thái duyệt", (r) => r.workflow_state),
+  xc("Lý do từ chối", (r) => r.reject_reason),
+  xc("Cập nhật", (r) => r.modified, "datetime"),
+  xc("Vĩ độ", (r) => geo(r.latitude), "number"),
+  xc("Kinh độ", (r) => geo(r.longitude), "number"),
+];
+const XL_PAY_SUM = [
+  xc("Chương trình", (p) => p.program_name || p.program),
+  xc("Trạng thái CT", (p) => p.status),
+  xc("Đủ điều kiện", (p) => p.eligible, "int"),
+  xc("Đã trả lần 1", (p) => p.paid_1, "int"),
+  xc("% lần 1", (p) => p.pct_1 ?? pct(p.paid_1, p.eligible), "percent"),
+  xc("Đã trả lần 2", (p) => p.paid_2, "int"),
+  xc("% lần 2", (p) => p.pct_2 ?? pct(p.paid_2, p.eligible), "percent"),
+];
+
+// Nút Xuất Excel trên thanh công cụ. mode: "is-icon" = thanh chật (Xoá lọc + Chọn nhiều) → điện thoại chỉ hiện
+// icon; "is-icon-xs" = có Chọn nhiều → chỉ hiện icon khi màn < 360px; "" = luôn có nhãn. Giữ mode trên data-export
+// để vẽ lại. running = đang dựng file (spinner); blocked = danh sách đang nạp lại / vừa xuất xong (chống chạm đúp).
+function exportBtn(mode, running, blocked = false) {
+  return `<button type="button" class="dp-tool-btn dp-xl-btn${mode ? ` ${mode}` : ""}" data-export="${mode}"
+    aria-label="Xuất Excel" title="Xuất Excel"${running ? ` disabled aria-busy="true"` : blocked ? " disabled" : ""}>${
+      running ? icon("spinner", "dp-spin") : icon("file-excel")
+    }<span class="dp-xl-label">Xuất Excel</span></button>`;
+}
 
 // ── Thẻ danh sách ──
 
@@ -477,6 +557,126 @@ export async function render({ container, query }) {
     </div>`;
   }
 
+  // ── Xuất Excel (doc/10): TOÀN BỘ dòng khớp lọc của tab (rowsFor — không chỉ phần "Xem thêm" đã vẽ) ──
+
+  const scopeLabel = () => S.data.customer_name || ctx.nppCustomer || "";
+
+  // Thưởng/điểm của 1 chương trình: overview chưa có → lấy từ tiến độ trả thưởng đã nạp (nếu có).
+  function rewardOf(program) {
+    for (const d of S.pay.values()) {
+      const p = (d.programs || []).find((x) => x.program === program);
+      if (p) return p.reward_per_point;
+    }
+    return null;
+  }
+
+  function exportSheets(tab) {
+    const rows = rowsFor(tab);
+    if (tab === "staff") return { rows, sheets: [{ name: "Nhân viên", columns: XL_STAFF, rows }] };
+    if (tab === "points") return { rows, sheets: [{ name: "Điểm bán", columns: XL_POINTS, rows }] };
+    if (tab === "programs") {
+      const sel = S.f.programs.program;
+      const progs = (S.data.programs || []).filter((p) => !sel || p.program === sel);
+      const progCols = [
+        xc("Chương trình", (p) => p.program_name || p.program),
+        xc("Trạng thái", (p) => p.status),
+        xc("Bắt đầu", (p) => p.start_date, "date"),
+        xc("Kết thúc", (p) => p.end_date, "date"),
+        xc("Thưởng/điểm", (p) => p.reward_per_point ?? rewardOf(p.program), "int"),
+        xc("Lượt tham gia", (p) => p.participations, "int"),
+        xc("Đã duyệt", (p) => p.approved, "int"),
+        xc("Điểm đã duyệt", (p) => p.approved_points, "int"),
+        xc("Độ phủ %", (p) => p.coverage_pct, "percent"),
+      ];
+      return {
+        rows,
+        sheets: [
+          { name: "Tham gia trưng bày", columns: XL_PARTS, rows },
+          { name: "Chương trình", columns: progCols, rows: progs },
+        ],
+      };
+    }
+    const d = currentPay();
+    const sel = S.f.payouts.program;
+    const reward = (r) =>
+      r.reward_per_point ?? ((d.programs || []).find((p) => p.program === r.promotion_program) || {}).reward_per_point;
+    const round = (r, n, key) => (r[`round_${n}`] ? r[`round_${n}`][key] : null);
+    const detail = [
+      XL_STT,
+      xc("Chương trình", (r) => r.program_name || r.promotion_program),
+      xc("Mã lượt", (r) => r.participation),
+      xc("Mã điểm", (r) => r.display_point),
+      xc("Điểm bán", (r) => r.point_name || r.display_point),
+      xc("SĐT", (r) => r.point_phone),
+      xc("NV phụ trách", (r) => ownerLabel(payOwner(r))),
+      xc("Lần 1 – ngày", (r) => round(r, 1, "payout_date"), "date"),
+      xc("Lần 1 – số ảnh", (r) => round(r, 1, "photos"), "int"),
+      xc("Lần 2 – ngày", (r) => round(r, 2, "payout_date"), "date"),
+      xc("Lần 2 – số ảnh", (r) => round(r, 2, "photos"), "int"),
+      xc("Trạng thái", (r) => PAY_LABEL[r.status] || r.status),
+      xc("Thưởng/điểm", reward, "int"),
+      xc("Chủ TK nhận thưởng", (r) => r.point_bank_account_name),
+      xc("Số TK", (r) => r.point_bank_account_no),
+      xc("Ngân hàng", (r) => r.point_bank_name),
+    ];
+    return {
+      rows,
+      sheets: [
+        { name: "Chi tiết", columns: detail, rows },
+        { name: "Tổng hợp", columns: XL_PAY_SUM, rows: (d.programs || []).filter((p) => !sel || p.program === sel) },
+      ],
+    };
+  }
+
+  // Chống bấm 2 lần: cờ + nút disabled (thanh công cụ có thể vẽ lại giữa chừng → vẽ theo cờ).
+  let exporting = false;
+  // Số lần nạp lại đang chạy (đổi chương trình, sau thao tác ghi): dữ liệu tab chưa về → khoá nút xuất,
+  // tránh báo nhầm "Không có dòng nào để xuất" / xuất danh sách cũ.
+  let loadingList = 0;
+  let cooling = false; // vừa xuất xong — nhịp khoá chống chạm đúp
+  const xlBlocked = () => loadingList > 0 || cooling;
+  function paintExport() {
+    root.querySelectorAll("[data-export]").forEach((b) => {
+      b.outerHTML = exportBtn(b.dataset.export || "", exporting, xlBlocked());
+    });
+  }
+  async function whileLoading(task) {
+    loadingList += 1;
+    paintExport();
+    try {
+      return await task();
+    } finally {
+      loadingList -= 1;
+      if (!loadingList) paintExport(); // lỗi nạp → danh sách cũ vẫn hiện, mở lại nút
+    }
+  }
+
+  async function runExport() {
+    if (exporting || xlBlocked()) return;
+    const tab = S.tab;
+    const { rows, sheets } = exportSheets(tab);
+    if (!rows.length) {
+      toast("Không có dòng nào để xuất", "warning");
+      return;
+    }
+    exporting = true;
+    paintExport();
+    try {
+      await downloadXlsx(fileStamp(scopeLabel(), XL_BASE[tab]), sheets);
+      toastSuccess(`Đã xuất ${formatNumber(rows.length)} dòng`);
+    } catch (err) {
+      toastError(`Không xuất được file Excel${err && err.message ? `: ${err.message}` : ""}`);
+    } finally {
+      exporting = false;
+      cooling = true;
+      paintExport();
+      setTimeout(() => {
+        cooling = false;
+        paintExport();
+      }, XL_COOLDOWN);
+    }
+  }
+
   // ── Vẽ ──
 
   function drawHead() {
@@ -599,6 +799,8 @@ export async function render({ container, query }) {
 
   function drawToolbar(n) {
     const filtered = FILTERS[S.tab].some((k) => S.f[S.tab][k]);
+    const crowded = filtered && !noMulti(S.tab); // Xoá lọc + Chọn nhiều + Xuất Excel
+    el("toolbar").classList.toggle("is-crowded", crowded);
     el("toolbar").innerHTML = `
       <span class="dp-npp-count">${formatNumber(n)} ${UNITS[S.tab]}</span>
       ${
@@ -612,7 +814,8 @@ export async function render({ container, query }) {
           : `<button type="button" class="dp-tool-btn${S.multi ? " dp-active" : ""}" data-multi aria-pressed="${
               S.multi
             }">${icon("list-check")} Chọn nhiều</button>`
-      }`;
+      }
+      ${exportBtn(crowded ? "is-icon" : noMulti(S.tab) ? "" : "is-icon-xs", exporting, xlBlocked())}`;
   }
 
   function emptyFor(tab) {
@@ -755,7 +958,7 @@ export async function render({ container, query }) {
     S.pay.clear();
     partsByName.clear();
     try {
-      await loadData();
+      await whileLoading(loadData);
     } catch (err) {
       toastError(err.message);
       return;
@@ -817,6 +1020,10 @@ export async function render({ container, query }) {
       setMulti(!S.multi);
       return;
     }
+    if (t.closest("[data-export]")) {
+      runExport();
+      return;
+    }
     if (t.closest("[data-clear-point]")) {
       S.f.programs.point = "";
       syncUrl();
@@ -859,7 +1066,7 @@ export async function render({ container, query }) {
       const program = select.value;
       el("list").innerHTML = skeleton(72, 4);
       try {
-        await (tab === "programs" ? ensureParts() : ensurePay());
+        await whileLoading(() => (tab === "programs" ? ensureParts() : ensurePay()));
       } catch (err) {
         toastError(err.message);
       }
