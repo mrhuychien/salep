@@ -12,7 +12,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import cint, get_fullname, getdate, today
+from frappe.utils import cint, flt, get_fullname, getdate, today
 
 STAFF_WORKING = "Đang làm"
 STAFF_LEFT = "Nghỉ việc"
@@ -141,7 +141,8 @@ def _program_map():
     out = {}
     for pg in frappe.get_all(
         "Promotion Program",
-        fields=["name", "program_name", "status", "start_date", "end_date"],
+        # reward_per_point: cột "Thưởng/điểm" khi xuất Excel (doc/10 §3) — field gốc của DocType.
+        fields=["name", "program_name", "status", "start_date", "end_date", "reward_per_point"],
         order_by="start_date desc",
     ):
         pg["is_active"] = _program_active(pg, today_date)
@@ -245,7 +246,8 @@ def _npp_profiles(distributor):
     return frappe.get_all(
         "Sales Staff Profile",
         filters={"distributor": distributor},
-        fields=_profile_fields("name", "user", "full_name", "phone"),
+        # cccd: cột CCCD khi xuất Excel danh sách NV (doc/10 §3) — field gốc của DocType.
+        fields=_profile_fields("name", "user", "full_name", "phone", "cccd"),
         order_by="full_name asc",
     )
 
@@ -321,6 +323,8 @@ def overview(distributor):
         fields=[
             "name", "point_name", "phone", "address_line", "is_active", "latitude", "longitude",
             "store_photo", "creation", "owner",
+            # Cột xuất Excel (doc/10 §4): MST + tài khoản nhận thưởng.
+            "tax_code", "bank_account_name", "bank_account_no", "bank_name",
         ],
         order_by="point_name asc",
     )
@@ -364,6 +368,10 @@ def overview(distributor):
             "participations": c["participations"],
             "approved": c["approved"],
             "participated": c["participations"] > 0,
+            "tax_code": p.tax_code,
+            "bank_account_name": p.bank_account_name,
+            "bank_account_no": p.bank_account_no,
+            "bank_name": p.bank_name,
         })
 
     prog_rows = []
@@ -382,6 +390,8 @@ def overview(distributor):
             "points": len(b["pts"]),
             "approved_points": len(b["appr_pts"]),
             "coverage_pct": round(len(b["appr_pts"]) / active_points * 100, 1) if active_points else 0,
+            # doc/10 §4: Thưởng/điểm (rỗng → 0, như payout.progress().programs[i]).
+            "reward_per_point": flt(pg.get("reward_per_point")),
         })
     # Chương trình đang chạy lên trước, rồi theo số lượt đã duyệt.
     prog_rows.sort(key=lambda x: (x["status"] != PROGRAM_RUNNING, -x["approved"]))
@@ -402,6 +412,7 @@ def overview(distributor):
             "is_self": s.user == frappe.session.user,
             "points": points_by_owner.get(s.user, 0),
             **(by_owner.get(s.user) or _counter()),
+            "cccd": s.cccd,  # doc/10 §4: cột CCCD (chuỗi hoặc None)
         })
     # Đang làm trước, rồi theo họ tên.
     staff_rows.sort(key=lambda x: (x["resigned"], (x["full_name"] or "").lower()))
@@ -486,17 +497,22 @@ def participations(distributor, program=None):
     return out
 
 
-def _point_names(distributor, names):
-    """{name: point_name} cho các điểm thuộc NPP (theo lô, tránh N+1)."""
+def _points_of(distributor, names, fields=("point_name",)):
+    """{name: row(name + fields)} cho các điểm thuộc NPP (theo lô, tránh N+1)."""
     out = {}
     for chunk in _chunks(names):
         for p in frappe.get_all(
             "Display Point",
             filters={"distributor": distributor, "name": ("in", chunk)},
-            fields=["name", "point_name"],
+            fields=["name", *fields],
         ):
-            out[p.name] = p.point_name
+            out[p.name] = p
     return out
+
+
+def _point_names(distributor, names):
+    """{name: point_name} cho các điểm thuộc NPP (theo lô, tránh N+1)."""
+    return {name: p.point_name for name, p in _points_of(distributor, names).items()}
 
 
 def _transfers_of(distributor, user, resolve):
@@ -570,7 +586,11 @@ def staff_history(distributor, staff):
     parts = frappe.get_all(
         "Display Participation",
         filters={"distributor": distributor, "owner": user},
-        fields=["name", "display_point", "promotion_program", "workflow_state", "modified"],
+        fields=[
+            "name", "display_point", "promotion_program", "workflow_state", "modified",
+            # Cột xuất Excel (doc/10 §3 "Tham gia"): lý do từ chối + toạ độ lượt.
+            "reject_reason", "latitude", "longitude",
+        ],
         order_by="modified desc",
     )
     part_stats = _counter()
@@ -580,9 +600,14 @@ def staff_history(distributor, staff):
         if (progs.get(p.promotion_program) or {}).get("is_active"):
             active_parts += 1
     shown = parts[:1000]
-    point_names = {p.name: p.point_name for p in points}
-    point_names.update(
-        _point_names(distributor, {p.display_point for p in shown if p.display_point} - set(point_names))
+    # Tên + SĐT điểm của lượt: điểm NV đang giữ đã nạp ở trên; điểm khác (lượt "lạc chủ") nạp theo lô
+    # trong NPP — điểm ngoài NPP / đã xoá → tên = mã, SĐT = None (như participations()).
+    point_info = {p.name: p for p in points}
+    point_info.update(
+        _points_of(
+            distributor, {p.display_point for p in shown if p.display_point} - set(point_info),
+            fields=("point_name", "phone"),
+        )
     )
 
     point_rows = []
@@ -602,16 +627,22 @@ def staff_history(distributor, staff):
     part_rows = []
     for p in shown:
         pg = progs.get(p.promotion_program) or {}
+        pt = point_info.get(p.display_point) or {}
         part_rows.append({
             "name": p.name,
             "display_point": p.display_point,
-            "point_name": point_names.get(p.display_point) or p.display_point,
+            "point_name": pt.get("point_name") or p.display_point,
             "promotion_program": p.promotion_program,
             "program_name": pg.get("program_name") or p.promotion_program,
             "program_status": pg.get("status"),
             "program_active": bool(pg.get("is_active")),
             "workflow_state": p.workflow_state,
             "modified": _str(p.modified),
+            # doc/10 §4 (xuất Excel), cùng nghĩa participations(): lý do từ chối, toạ độ lượt, SĐT điểm.
+            "reject_reason": p.reject_reason,
+            "latitude": p.latitude,
+            "longitude": p.longitude,
+            "point_phone": pt.get("phone"),
         })
 
     return {

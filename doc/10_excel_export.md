@@ -81,8 +81,22 @@ trên; trang lịch sử 1 NV (`#/npp/staff/:name`) xuất sheet Điểm bán ·
 
 - salep `npp_manage.overview().points[i]` + nextnpp `promo.npp_overview().points[i]`:
   `tax_code`, `bank_account_name`, `bank_account_no`, `bank_name` (+ `creation` nếu chưa có).
+- salep `npp_manage.overview().staff[i]`: `cccd`; `.programs[i]`: `reward_per_point` (`flt`, rỗng → 0 —
+  như `payout.progress().programs[i]`).
+- salep `npp_manage.staff_history().participations[i]` (dùng chung cho nextnpp `promo.staff_history`):
+  `reject_reason`, `latitude`, `longitude` (của lượt), `point_phone` (SĐT điểm trong NPP, ngoài NPP/
+  đã xoá → `None`) — cùng nghĩa `participations()`.
 - salep `payout.progress().rows[i]`: `reward_per_point`, `point_tax_code`,
   `point_bank_account_name`, `point_bank_account_no`, `point_bank_name`.
 - nextnpp `promo_admin.points_by_npp()` mỗi điểm: `tax_code`, bank fields, `creation`,
-  `owner`, `staff_name` (nhãn NV phụ trách).
-Phạm vi giữ nguyên (NPP chỉ thấy điểm của mình; quản lý kênh thấy mọi NPP).
+  `owner`, `staff_name` (nhãn NV phụ trách), `participations`, `approved` (mọi chương trình).
+- nextnpp `promo_admin.staff_by_npp()` mỗi NV: `cccd`, `employment_status` (thiếu cột / rỗng →
+  "Đang làm"), `resigned`, `left_on`, `points` (số điểm NV giữ trong NPP của NV).
+- nextnpp `promo_admin.programs()`: `approved_points` (số điểm có ≥1 lượt đã duyệt), `coverage_pct`
+  (= approved_points / mọi điểm đang hoạt động × 100, cùng định nghĩa `program_detail.coverage.pct`).
+- nextnpp `promo_admin.pending_participations()` / `rejected_participations()` /
+  `program_detail().participants_by_npp[].items[]`: `point_phone`, `latitude`, `longitude` (GPS của
+  lượt); `rejected_participations` thêm `workflow_state = "Từ chối"`; `program_detail` thêm `reject_reason`.
+- nextnpp `promo.npp_overview().staff[i]`: dòng không có hồ sơ cũng có `cccd: None` (cùng shape).
+Phạm vi giữ nguyên (NPP chỉ thấy điểm của mình; quản lý kênh thấy mọi NPP). Cột tuỳ chọn ở `/ql-km`
+hiện khi server CÓ gửi key (không phụ thuộc dữ liệu) → server cũ vẫn xuất được, chỉ thiếu cột.

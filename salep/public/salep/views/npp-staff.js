@@ -351,6 +351,9 @@ export async function render({ container, params, query }) {
     try {
       // Lịch sử NV không có MST / tài khoản nhận thưởng / ngày tạo điểm → bổ sung từ tổng quan NPP
       // (cùng phạm vi server); không tải được thì vẫn xuất với dữ liệu đang có.
+      // Sheet Tham gia lấy thẳng staff_history().participations (doc/10 §4): lý do từ chối, toạ độ CỦA LƯỢT,
+      // SĐT điểm (None = điểm ngoài NPP / đã xoá → ô trống). Chỉ backend cũ chưa có point_phone mới tra SĐT
+      // theo điểm đã tải.
       let ov = {};
       try {
         ov = await loadOverview();
@@ -362,7 +365,7 @@ export async function render({ container, params, query }) {
       const pointRows = points.map((p) => ({ ...byName.get(p.name), ...p }));
       const partRows = parts.map((r) => ({
         ...r,
-        point_phone: r.point_phone ?? phoneOf(r.display_point),
+        point_phone: "point_phone" in r ? r.point_phone : phoneOf(r.display_point),
         staff_name: st.full_name || st.user,
         staff_left: !!st.resigned,
       }));

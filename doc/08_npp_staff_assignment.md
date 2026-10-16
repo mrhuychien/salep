@@ -175,20 +175,28 @@ offboard_staff(distributor, staff, target=TARGET_NPP, note=None) -> dict
   "totals": {programs, running, points, active_points, unassigned_points, participated_points,
              participations, approved, pending, staff, staff_working, staff_left},
   "programs": [{program, program_name, status, start_date, end_date, is_active,
-                participations, approved, pending, points, approved_points, coverage_pct}],
+                participations, approved, pending, points, approved_points, coverage_pct,
+                reward_per_point}],                                   // key cuối: doc/10 §4
   "points":   [{name, point_name, phone, address_line, is_active, latitude, longitude, store_photo,
                 creation, owner, owner_kind, staff, staff_name, staff_left,
-                participations, approved, participated}],
+                participations, approved, participated,
+                tax_code, bank_account_name, bank_account_no, bank_name}],   // 4 key cuối: doc/10 §4
   "staff":    [{name, user, full_name, phone, employment_status, resigned, left_on, active,
-                is_self, points, participations, approved, pending}]
+                is_self, points, participations, approved, pending,
+                cccd}]                                                // key cuối: doc/10 §4
 }
 ```
 - `programs`: mọi Promotion Program (như `/npp`), chỉ số tính trên lượt của NPP; sắp
   "Đang chạy" trước rồi theo `approved` giảm dần. `coverage_pct` = approved_points / active_points × 100.
 - `points`: sắp `point_name asc`; `participations/approved` = số lượt của điểm.
+  `tax_code`, `bank_*` = MST + tài khoản nhận thưởng của điểm (thêm cho xuất Excel — doc/10 §4; chuỗi
+  hoặc `None`, cùng truy vấn Display Point).
 - `staff`: hồ sơ của NPP (kể cả đã nghỉ), sắp: đang làm trước, rồi `full_name`. `active` = `User.enabled`;
   `is_self` = `user == session.user`; `points` = số điểm owner = user (trong NPP);
   `participations/approved/pending` theo owner (trong NPP). Dates → `str` hoặc `None`.
+  `cccd` = `Sales Staff Profile.cccd` (chuỗi hoặc `None`, cùng truy vấn hồ sơ — doc/10 §4).
+- `programs[i].reward_per_point` = `Promotion Program.reward_per_point` qua `flt` (rỗng → `0`; cùng
+  giá trị với `payout.progress().programs[i]`, cùng truy vấn `_program_map()` — doc/10 §4).
 - `pending` = lượt có `workflow_state` không thuộc {Đã duyệt, Từ chối}.
 
 `participations(d, program=None)` — lượt của NPP, `order_by modified desc`, `limit 2000`:
@@ -207,14 +215,17 @@ offboard_staff(distributor, staff, target=TARGET_NPP, note=None) -> dict
   "points": [{name, point_name, phone, address_line, is_active, latitude, longitude,
               participations, approved}],
   "participations": [{name, display_point, point_name, promotion_program, program_name,
-                      program_status, program_active, workflow_state, modified}],
+                      program_status, program_active, workflow_state, modified,
+                      reject_reason, latitude, longitude, point_phone}],   // 4 key cuối: doc/10 §4
   "transfers": [{name, creation, display_point, point_name, direction ("in"|"out"),
                  counterpart_label, reason, note, by_label, participations_moved}]
 }
 ```
 - `points` = điểm owner = user trong NPP; `participations` = lượt owner = user trong NPP
-  (mọi chương trình, modified desc, limit 1000); `transfers` = log có `from_user` hoặc `to_user`
-  = user trong NPP, `creation desc`, limit 300 (bỏ qua nếu bảng chưa tồn tại → `[]`).
+  (mọi chương trình, modified desc, limit 1000); `reject_reason/latitude/longitude` = của LƯỢT,
+  `point_phone` = SĐT điểm trong NPP (điểm NV đang giữ, hoặc nạp theo lô cùng tên điểm cho lượt
+  "lạc chủ"; điểm ngoài NPP / đã xoá → `None`) — cùng nghĩa `participations()`;
+  `transfers` = log có `from_user` hoặc `to_user` = user trong NPP, `creation desc`, limit 300 (bỏ qua nếu bảng chưa tồn tại → `[]`).
   `direction="in"` khi `to_user == user`; `counterpart_label` = nhãn bên kia (owner_resolver);
   `by_label` = fullname của người thao tác (`owner`).
 
@@ -247,6 +258,8 @@ offboard_staff(distributor, staff, target=TARGET_NPP, note=None) -> dict
   - `points[i]`: `owner, owner_kind, staff, staff_name, staff_left, participations, approved`
   - `staff[i]`: `points, employment_status, resigned, left_on`
   (tính tại chỗ, cùng định nghĩa §1; field `employment_status` thiếu → coi như "Đang làm").
+  - doc/10 §4 (xuất Excel): `points[i]` thêm `tax_code, bank_account_name, bank_account_no, bank_name,
+    creation` (`creation` = str hoặc `None`).
   - `staff[]` / `totals.staff` **không** còn dòng giả cho tài khoản NPP (owner là tài khoản NPP
     mà không có hồ sơ NV) — điểm của nó đã hiện là "NPP giữ".
 - `npp_participations` mỗi dòng thêm `staff, staff_name, staff_left, owner_kind, program_active,

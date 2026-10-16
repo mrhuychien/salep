@@ -561,7 +561,8 @@ export async function render({ container, query }) {
 
   const scopeLabel = () => S.data.customer_name || ctx.nppCustomer || "";
 
-  // Thưởng/điểm của 1 chương trình: overview chưa có → lấy từ tiến độ trả thưởng đã nạp (nếu có).
+  // Thưởng/điểm lấy thẳng overview().programs[i].reward_per_point (doc/10 §4, rỗng → 0) — không cần mở tab
+  // Trả thưởng. Chỉ backend cũ chưa có key mới rơi về đây: tiến độ trả thưởng đã nạp (nếu có), không có → ô trống.
   function rewardOf(program) {
     for (const d of S.pay.values()) {
       const p = (d.programs || []).find((x) => x.program === program);
