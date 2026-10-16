@@ -62,7 +62,8 @@ const XL_PARTS = [
   xc("Chương trình", (r) => r.program_name || r.promotion_program),
   xc("NV phụ trách", ownerLabel),
   xc("Trạng thái duyệt", (r) => r.workflow_state),
-  xc("Lý do từ chối", (r) => r.reject_reason),
+  // Chỉ lượt đang "Từ chối" (như màn hình, /npp, /ql-km): duyệt lại / gửi lại không xoá reject_reason cũ.
+  xc("Lý do từ chối", (r) => (r.workflow_state === "Từ chối" ? r.reject_reason : null)),
   xc("Cập nhật", (r) => r.modified, "datetime"),
   xc("Vĩ độ", (r) => geo(r.latitude), "number"),
   xc("Kinh độ", (r) => geo(r.longitude), "number"),
@@ -355,10 +356,12 @@ export async function render({ container, params, query }) {
       // SĐT điểm (None = điểm ngoài NPP / đã xoá → ô trống). Chỉ backend cũ chưa có point_phone mới tra SĐT
       // theo điểm đã tải.
       let ov = {};
+      let enrichFailed = false; // báo cảnh báo thay vì "thành công" — cột MST / TK nhận thưởng sẽ trống
       try {
         ov = await loadOverview();
       } catch {
         ov = {};
+        enrichFailed = true;
       }
       const byName = new Map((ov.points || []).map((p) => [p.name, p]));
       const phoneOf = (dp) => (pointsByName.get(dp) || byName.get(dp) || {}).phone;
@@ -374,7 +377,14 @@ export async function render({ container, params, query }) {
         { name: "Tham gia", columns: XL_PARTS, rows: partRows },
         { name: "Bàn giao", columns: XL_TRANSFERS, rows: transfers },
       ]);
-      toastSuccess(`Đã xuất ${formatNumber(total)} dòng`);
+      if (enrichFailed && points.length) {
+        toast(
+          `Đã xuất ${formatNumber(total)} dòng — chưa tải được MST / tài khoản nhận thưởng, thử xuất lại`,
+          "warning"
+        );
+      } else {
+        toastSuccess(`Đã xuất ${formatNumber(total)} dòng`);
+      }
     } catch (err) {
       toastError(`Không xuất được file Excel${err && err.message ? `: ${err.message}` : ""}`);
     } finally {

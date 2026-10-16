@@ -585,11 +585,14 @@ def progress(distributor=None, program=None):
 
     # Tên/SĐT điểm bán của các lượt được chọn (theo lô) — cần tên điểm để sắp xếp trước khi cắt 5000.
     # Cùng truy vấn lấy luôn MST + tài khoản nhận thưởng cho file Excel (doc/10 §4) — không N+1.
+    # Phạm vi 1 NPP: chỉ điểm CỦA NPP đó — lượt cũ trỏ điểm đã chuyển sang NPP khác → tên = mã điểm,
+    # SĐT / MST / TK = None (như participations() / staff_history()), không lộ dữ liệu NPP khác.
     points = {}
     for chunk in _chunks({p.display_point for p in selected if p.display_point}):
-        for pt in frappe.get_all(
-            "Display Point", filters={"name": ("in", chunk)}, fields=_POINT_FIELDS
-        ):
+        pt_filters = {"name": ("in", chunk)}
+        if distributor is not None:
+            pt_filters["distributor"] = distributor
+        for pt in frappe.get_all("Display Point", filters=pt_filters, fields=_POINT_FIELDS):
             points[pt.name] = pt
     rows = []
     for p in selected:

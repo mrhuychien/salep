@@ -49,6 +49,10 @@ Yêu cầu của writer:
   `NhanVien`, `ChuongTrinh`, `CanDuyet`, `TuChoi`, `AnhTheoThang`, `LichSuNhanVien`.
 - Nút đặt cạnh tiêu đề / hàng bộ lọc của danh sách; chống bấm 2 lần (disable khi đang dựng).
   Toast "Đã xuất N dòng".
+- Đang nạp lại danh sách → khoá nút; nạp lại lỗi (danh sách cũ vẫn hiện) → mở lại nút và xuất đúng
+  danh sách đang thấy (`/dp`: sau thao tác ghi, bộ đệm lượt / trả thưởng chỉ thay khi nạp lại xong).
+- Thiếu dữ liệu bổ sung (trang lịch sử NV: `npp_overview` lỗi) → vẫn xuất, nhưng toast **cảnh báo**
+  "Đã xuất N dòng — chưa tải được MST / tài khoản nhận thưởng, thử xuất lại" thay cho toast thành công.
 
 ## 3. Danh sách & cột
 
@@ -58,9 +62,10 @@ Vĩ độ · Kinh độ · Ngày tạo (`/ql-km` thêm cột NPP sau STT).
 
 **Tham gia trưng bày** — STT · Mã lượt · Mã điểm · Điểm bán · SĐT điểm · Chương trình ·
 NV phụ trách · Trạng thái duyệt · Lý do từ chối · Cập nhật (datetime) · Vĩ độ · Kinh độ
-(`/ql-km` thêm NPP). Xuất từ tab Chương trình kèm sheet **Chương trình**: Chương trình ·
-Trạng thái · Bắt đầu · Kết thúc · Thưởng/điểm · Lượt tham gia · Đã duyệt · Điểm đã duyệt ·
-Độ phủ %.
+(`/ql-km` thêm NPP). **Lý do từ chối** chỉ ghi cho lượt đang "Từ chối" (như màn hình): gửi duyệt lại /
+duyệt lại không xoá `reject_reason` cũ → lượt Chờ duyệt / Đã duyệt để ô trống. Xuất từ tab Chương
+trình kèm sheet **Chương trình**: Chương trình · Trạng thái · Bắt đầu · Kết thúc · Thưởng/điểm ·
+Lượt tham gia · Đã duyệt · Điểm đã duyệt · Độ phủ %.
 
 **Trả thưởng** — sheet **Chi tiết**: STT · Chương trình · Mã lượt · Mã điểm · Điểm bán · SĐT ·
 NV phụ trách · (NPP) · Lần 1 – ngày · Lần 1 – số ảnh · Lần 2 – ngày · Lần 2 – số ảnh ·
@@ -87,7 +92,10 @@ trên; trang lịch sử 1 NV (`#/npp/staff/:name`) xuất sheet Điểm bán ·
   `reject_reason`, `latitude`, `longitude` (của lượt), `point_phone` (SĐT điểm trong NPP, ngoài NPP/
   đã xoá → `None`) — cùng nghĩa `participations()`.
 - salep `payout.progress().rows[i]`: `reward_per_point`, `point_tax_code`,
-  `point_bank_account_name`, `point_bank_account_no`, `point_bank_name`.
+  `point_bank_account_name`, `point_bank_account_no`, `point_bank_name`. Phạm vi 1 NPP (`distributor`
+  khác None — `/dp`, `/npp`, `/ql-km` lọc 1 NPP): chỉ tra điểm **thuộc NPP đó**; lượt cũ trỏ điểm đã
+  chuyển sang NPP khác → `point_name` = mã điểm, `point_phone` / MST / TK = `None` (như
+  `participations()` / `staff_history()`). Mọi NPP (`distributor=None`) → tra không lọc NPP.
 - nextnpp `promo_admin.points_by_npp()` mỗi điểm: `tax_code`, bank fields, `creation`,
   `owner`, `staff_name` (nhãn NV phụ trách), `participations`, `approved` (mọi chương trình).
 - nextnpp `promo_admin.staff_by_npp()` mỗi NV: `cccd`, `employment_status` (thiếu cột / rỗng →
