@@ -6,7 +6,8 @@ dựng **ngay trên trình duyệt** từ dữ liệu đang hiển thị, **theo
 round-trip server → xuất được cả khi danh sách đã lọc tay; dữ liệu đã được server scope sẵn
 (NPP chỉ thấy NPP mình) nên file không chứa gì người dùng không được xem.
 
-Server chỉ bổ sung vài cột còn thiếu cho file (MST, tài khoản nhận thưởng) — §4.
+Server chỉ bổ sung vài cột còn thiếu cho file (MST, tài khoản nhận thưởng, địa chỉ điểm trên dòng lượt /
+trả thưởng / bàn giao) — §4.
 
 ## 1. Module dùng chung `components/xlsx.js` (mỗi app 1 bản, cùng API)
 
@@ -41,6 +42,9 @@ Yêu cầu của writer:
 ## 2. Quy ước chung cho mọi danh sách
 
 - Cột đầu **STT**; cột mã (`name`) giữ nguyên để đối chiếu ERP.
+- Mọi danh sách có dòng trỏ 1 điểm bán đều có cột **Địa chỉ** (= `Display Point.address_line`), đặt
+  **ngay sau SĐT / SĐT điểm** (sheet Bàn giao không có SĐT → ngay sau "Điểm bán"). Điểm ngoài NPP / đã xoá /
+  lượt không có điểm → ô trống.
 - Nhãn trạng thái tiếng Việt như trên màn hình (Hoạt động/Ngừng, Đã duyệt/Chờ duyệt…, Hoạt động/
   Tạm dừng/Đã nghỉ, Chưa trả / Đã trả lần 1 / Đủ 2 lần). Phụ trách = nhãn đang hiển thị
   (`staff_name`, "NPP (chưa giao)"…).
@@ -60,20 +64,27 @@ Yêu cầu của writer:
 Trạng thái · Số lượt tham gia · Lượt đã duyệt · Chủ TK nhận thưởng · Số TK · Ngân hàng ·
 Vĩ độ · Kinh độ · Ngày tạo (`/ql-km` thêm cột NPP sau STT).
 
-**Tham gia trưng bày** — STT · Mã lượt · Mã điểm · Điểm bán · SĐT điểm · Chương trình ·
+**Tham gia trưng bày** — STT · Mã lượt · Mã điểm · Điểm bán · SĐT điểm · Địa chỉ · Chương trình ·
 NV phụ trách · Trạng thái duyệt · Lý do từ chối · Cập nhật (datetime) · Vĩ độ · Kinh độ
-(`/ql-km` thêm NPP). **Lý do từ chối** chỉ ghi cho lượt đang "Từ chối" (như màn hình): gửi duyệt lại /
-duyệt lại không xoá `reject_reason` cũ → lượt Chờ duyệt / Đã duyệt để ô trống. Xuất từ tab Chương
-trình kèm sheet **Chương trình**: Chương trình · Trạng thái · Bắt đầu · Kết thúc · Thưởng/điểm ·
-Lượt tham gia · Đã duyệt · Điểm đã duyệt · Độ phủ %.
+(`/ql-km` thêm NPP). `/ql-km` Cần duyệt, Từ chối, danh sách tham gia của chi tiết 1 chương trình và sheet
+**Tham gia** trang lịch sử 1 NV dùng bộ cột này (cột tuỳ chọn ở `/ql-km`: xem cuối §4). **Lý do từ chối**
+chỉ ghi cho lượt đang "Từ chối" (như màn hình): gửi duyệt lại / duyệt lại không xoá `reject_reason` cũ →
+lượt Chờ duyệt / Đã duyệt để ô trống. Xuất từ tab Chương trình kèm sheet **Chương trình**: Chương trình ·
+Trạng thái · Bắt đầu · Kết thúc · Thưởng/điểm · Lượt tham gia · Đã duyệt · Điểm đã duyệt · Độ phủ %.
 
-**Trả thưởng** — sheet **Chi tiết**: STT · Chương trình · Mã lượt · Mã điểm · Điểm bán · SĐT ·
+**Trả thưởng** — sheet **Chi tiết**: STT · Chương trình · Mã lượt · Mã điểm · Điểm bán · SĐT · Địa chỉ ·
 NV phụ trách · (NPP) · Lần 1 – ngày · Lần 1 – số ảnh · Lần 2 – ngày · Lần 2 – số ảnh ·
 Trạng thái · Thưởng/điểm · Chủ TK nhận thưởng · Số TK · Ngân hàng; sheet **Tổng hợp**:
 Chương trình · Trạng thái CT · Đủ điều kiện · Đã trả lần 1 · % lần 1 · Đã trả lần 2 · % lần 2.
 
 **Nhân viên** — STT · Mã NV · Họ tên · SĐT (đăng nhập) · CCCD · Trạng thái · Ngày nghỉ ·
 Số điểm phụ trách · Lượt tham gia · Đã duyệt · Tỷ lệ duyệt %.
+
+**Lịch sử 1 NV** (`/dp` `#/npp/staff/:name`, `/npp` modal lịch sử NV) — 3 sheet: **Điểm bán** (cột như
+Điểm bán), **Tham gia** (cột như Tham gia trưng bày), **Bàn giao** — `/dp`: STT · Mã bàn giao · Thời gian
+(datetime) · Loại (Nhận điểm / Chuyển đi) · Mã điểm · Điểm bán · Địa chỉ · Nhận từ / Chuyển cho · Lý do ·
+Lượt chuyển kèm · Ghi chú · Thực hiện bởi; `/npp` giữ bộ cột riêng hiện có, cùng quy tắc **Địa chỉ ngay
+sau "Điểm bán"**.
 
 **`/ql-km`** (mọi NPP): Cần duyệt, Từ chối, Ảnh theo tháng, Chương trình (danh sách + chi tiết 1
 chương trình), Điểm bán, Nhân viên, Trả thưởng — mỗi tab xuất đúng dữ liệu đã tải, cột theo §3
@@ -91,6 +102,18 @@ trên; trang lịch sử 1 NV (`#/npp/staff/:name`) xuất sheet Điểm bán ·
 - salep `npp_manage.staff_history().participations[i]` (dùng chung cho nextnpp `promo.staff_history`):
   `reject_reason`, `latitude`, `longitude` (của lượt), `point_phone` (SĐT điểm trong NPP, ngoài NPP/
   đã xoá → `None`) — cùng nghĩa `participations()`.
+- **`point_address`** (= `Display Point.address_line` của điểm của dòng; điểm ngoài NPP / đã xoá / dòng
+  không có điểm → `None`) — cột "Địa chỉ" §3. Lấy trong **cùng truy vấn Display Point theo lô có sẵn**
+  (không thêm lệnh đọc, không N+1), phạm vi như `point_phone`:
+  - salep `npp_manage.participations()[i]`, `npp_manage.staff_history().participations[i]` +
+    `.transfers[i]` (dùng chung cho nextnpp `promo.staff_history`) — chỉ tra điểm trong NPP;
+  - salep `payout.progress().rows[i]` (dùng chung cho nextnpp trả thưởng) — phạm vi 1 NPP chỉ tra điểm
+    của NPP đó (như dưới), mọi NPP → tra không lọc NPP;
+  - nextnpp `promo.npp_participations()[i]`, `promo_admin.pending_participations()[i]` /
+    `rejected_participations()[i]` / `program_detail().participants_by_npp[].items[]`;
+  - giao diện: server **có gửi** key (kể cả `None`) → dùng đúng giá trị đó, không tra bù. Server cũ **chưa
+    có** key → `/dp`, `/npp` tra `address_line` theo điểm đã tải (điểm của NPP mình); `/ql-km` không có
+    cột (cột tuỳ chọn — cuối §4).
 - salep `payout.progress().rows[i]`: `reward_per_point`, `point_tax_code`,
   `point_bank_account_name`, `point_bank_account_no`, `point_bank_name`. Phạm vi 1 NPP (`distributor`
   khác None — `/dp`, `/npp`, `/ql-km` lọc 1 NPP): chỉ tra điểm **thuộc NPP đó**; lượt cũ trỏ điểm đã

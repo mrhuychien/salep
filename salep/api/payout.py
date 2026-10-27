@@ -55,9 +55,10 @@ _PAYOUT_FIELDS = [
 ]
 # Sắp danh sách tiến độ: chưa trả trước, rồi đã trả lần 1, rồi đủ 2 lần.
 _STATUS_ORDER = {"none": 0, "r1": 1, "done": 2}
-# Điểm bán trên dòng tiến độ: tên/SĐT + MST + tài khoản nhận thưởng (cột Excel, doc/10 §4).
+# Điểm bán trên dòng tiến độ: tên/SĐT/địa chỉ + MST + tài khoản nhận thưởng (cột Excel, doc/10 §4).
 _POINT_FIELDS = [
-    "name", "point_name", "phone", "tax_code", "bank_account_name", "bank_account_no", "bank_name",
+    "name", "point_name", "phone", "address_line", "tax_code", "bank_account_name", "bank_account_no",
+    "bank_name",
 ]
 
 
@@ -584,9 +585,9 @@ def progress(distributor=None, program=None):
     ))
 
     # Tên/SĐT điểm bán của các lượt được chọn (theo lô) — cần tên điểm để sắp xếp trước khi cắt 5000.
-    # Cùng truy vấn lấy luôn MST + tài khoản nhận thưởng cho file Excel (doc/10 §4) — không N+1.
+    # Cùng truy vấn lấy luôn địa chỉ + MST + tài khoản nhận thưởng cho file Excel (doc/10 §4) — không N+1.
     # Phạm vi 1 NPP: chỉ điểm CỦA NPP đó — lượt cũ trỏ điểm đã chuyển sang NPP khác → tên = mã điểm,
-    # SĐT / MST / TK = None (như participations() / staff_history()), không lộ dữ liệu NPP khác.
+    # SĐT / địa chỉ / MST / TK = None (như participations() / staff_history()), không lộ dữ liệu NPP khác.
     points = {}
     for chunk in _chunks({p.display_point for p in selected if p.display_point}):
         pt_filters = {"name": ("in", chunk)}
@@ -604,6 +605,7 @@ def progress(distributor=None, program=None):
             "display_point": p.display_point,
             "point_name": pt.get("point_name") or p.display_point,
             "point_phone": pt.get("phone"),
+            "point_address": pt.get("address_line"),
             "distributor": p.distributor,
             "promotion_program": p.promotion_program,
             "program_name": pg.get("program_name") or p.promotion_program,

@@ -117,6 +117,12 @@ const pct = (part, total) => (Number(total) ? (Number(part) / Number(total)) * 1
 // Nhãn Phụ trách đang hiển thị (staff_name server đã dựng: tên NV / "NPP (chưa giao)" / tài khoản khác).
 const ownerLabel = (r) => (r.staff_name ? `${r.staff_name}${r.staff_left ? " (đã nghỉ)" : ""}` : "");
 const staffStatus = (s) => (s.resigned ? "Đã nghỉ" : s.active ? "Hoạt động" : "Tạm dừng");
+// Địa chỉ điểm trên dòng lượt / trả thưởng (doc/10 §3–4): server gửi point_address (None = điểm ngoài NPP / đã
+// xoá → ô trống). Chỉ server cũ chưa có key mới tra địa chỉ theo điểm đã tải (tổng quan — cùng phạm vi NPP).
+const withAddress = (rows, byName) =>
+  rows.map((r) =>
+    "point_address" in r ? r : { ...r, point_address: (byName.get(r.display_point) || {}).address_line }
+  );
 
 const XL_STAFF = [
   XL_STT,
@@ -155,6 +161,7 @@ const XL_PARTS = [
   xc("Mã điểm", (r) => r.display_point),
   xc("Điểm bán", (r) => r.point_name || r.display_point),
   xc("SĐT điểm", (r) => r.point_phone),
+  xc("Địa chỉ", (r) => r.point_address),
   xc("Chương trình", (r) => r.program_name || r.promotion_program),
   xc("NV phụ trách", ownerLabel),
   xc("Trạng thái duyệt", (r) => r.workflow_state),
@@ -593,7 +600,7 @@ export async function render({ container, query }) {
       return {
         rows,
         sheets: [
-          { name: "Tham gia trưng bày", columns: XL_PARTS, rows },
+          { name: "Tham gia trưng bày", columns: XL_PARTS, rows: withAddress(rows, pointsByName) },
           { name: "Chương trình", columns: progCols, rows: progs },
         ],
       };
@@ -610,6 +617,7 @@ export async function render({ container, query }) {
       xc("Mã điểm", (r) => r.display_point),
       xc("Điểm bán", (r) => r.point_name || r.display_point),
       xc("SĐT", (r) => r.point_phone),
+      xc("Địa chỉ", (r) => r.point_address),
       xc("NV phụ trách", (r) => ownerLabel(payOwner(r))),
       xc("Lần 1 – ngày", (r) => round(r, 1, "payout_date"), "date"),
       xc("Lần 1 – số ảnh", (r) => round(r, 1, "photos"), "int"),
@@ -624,7 +632,7 @@ export async function render({ container, query }) {
     return {
       rows,
       sheets: [
-        { name: "Chi tiết", columns: detail, rows },
+        { name: "Chi tiết", columns: detail, rows: withAddress(rows, pointsByName) },
         { name: "Tổng hợp", columns: XL_PAY_SUM, rows: (d.programs || []).filter((p) => !sel || p.program === sel) },
       ],
     };

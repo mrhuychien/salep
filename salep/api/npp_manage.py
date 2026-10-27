@@ -466,7 +466,8 @@ def participations(distributor, program=None):
         for p in frappe.get_all(
             "Display Point",
             filters={"distributor": distributor},
-            fields=["name", "point_name", "phone", "is_active", "owner"],
+            # address_line: cột "Địa chỉ" file Excel (doc/10 §4) — cùng truy vấn, không thêm lệnh đọc.
+            fields=["name", "point_name", "phone", "address_line", "is_active", "owner"],
         )
     }
     out = []
@@ -479,6 +480,7 @@ def participations(distributor, program=None):
             "display_point": r.display_point,
             "point_name": pt.get("point_name") or r.display_point,
             "point_phone": pt.get("phone"),
+            "point_address": pt.get("address_line"),
             "point_active": bool(pt.get("is_active")),
             "promotion_program": r.promotion_program,
             "program_name": pg.get("program_name") or r.promotion_program,
@@ -510,11 +512,6 @@ def _points_of(distributor, names, fields=("point_name",)):
     return out
 
 
-def _point_names(distributor, names):
-    """{name: point_name} cho các điểm thuộc NPP (theo lô, tránh N+1)."""
-    return {name: p.point_name for name, p in _points_of(distributor, names).items()}
-
-
 def _transfers_of(distributor, user, resolve):
     """Nhật ký bàn giao có NV ở 1 trong 2 phía (mới trước, tối đa 300); bảng chưa có → []."""
     if not user or not frappe.db.table_exists(TRANSFER_DOCTYPE):
@@ -530,16 +527,22 @@ def _transfers_of(distributor, user, resolve):
         order_by="creation desc",
         limit_page_length=300,
     )
-    names = _point_names(distributor, {r.display_point for r in rows if r.display_point})
+    # Tên + địa chỉ điểm (cột Excel doc/10 §4) theo lô, chỉ điểm TRONG NPP — ngoài NPP / đã xoá →
+    # tên = mã điểm, địa chỉ = None.
+    pts = _points_of(
+        distributor, {r.display_point for r in rows if r.display_point}, fields=("point_name", "address_line")
+    )
     out = []
     for r in rows:
         incoming = r.to_user == user
         counterpart = r.from_user if incoming else r.to_user
+        pt = pts.get(r.display_point) or {}
         out.append({
             "name": r.name,
             "creation": _str(r.creation),
             "display_point": r.display_point,
-            "point_name": names.get(r.display_point) or r.display_point,
+            "point_name": pt.get("point_name") or r.display_point,
+            "point_address": pt.get("address_line"),
             "direction": "in" if incoming else "out",
             "counterpart_label": resolve(counterpart)["staff_name"] if counterpart else None,
             "reason": r.reason,
@@ -600,13 +603,13 @@ def staff_history(distributor, staff):
         if (progs.get(p.promotion_program) or {}).get("is_active"):
             active_parts += 1
     shown = parts[:1000]
-    # Tên + SĐT điểm của lượt: điểm NV đang giữ đã nạp ở trên; điểm khác (lượt "lạc chủ") nạp theo lô
-    # trong NPP — điểm ngoài NPP / đã xoá → tên = mã, SĐT = None (như participations()).
+    # Tên + SĐT + địa chỉ điểm của lượt: điểm NV đang giữ đã nạp ở trên; điểm khác (lượt "lạc chủ") nạp
+    # theo lô trong NPP — điểm ngoài NPP / đã xoá → tên = mã, SĐT / địa chỉ = None (như participations()).
     point_info = {p.name: p for p in points}
     point_info.update(
         _points_of(
             distributor, {p.display_point for p in shown if p.display_point} - set(point_info),
-            fields=("point_name", "phone"),
+            fields=("point_name", "phone", "address_line"),
         )
     )
 
@@ -638,11 +641,12 @@ def staff_history(distributor, staff):
             "program_active": bool(pg.get("is_active")),
             "workflow_state": p.workflow_state,
             "modified": _str(p.modified),
-            # doc/10 §4 (xuất Excel), cùng nghĩa participations(): lý do từ chối, toạ độ lượt, SĐT điểm.
+            # doc/10 §4 (xuất Excel), cùng nghĩa participations(): lý do từ chối, toạ độ lượt, SĐT + địa chỉ.
             "reject_reason": p.reject_reason,
             "latitude": p.latitude,
             "longitude": p.longitude,
             "point_phone": pt.get("phone"),
+            "point_address": pt.get("address_line"),
         })
 
     return {

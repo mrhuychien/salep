@@ -59,6 +59,7 @@ const XL_PARTS = [
   xc("Mã điểm", (r) => r.display_point),
   xc("Điểm bán", (r) => r.point_name || r.display_point),
   xc("SĐT điểm", (r) => r.point_phone),
+  xc("Địa chỉ", (r) => r.point_address),
   xc("Chương trình", (r) => r.program_name || r.promotion_program),
   xc("NV phụ trách", ownerLabel),
   xc("Trạng thái duyệt", (r) => r.workflow_state),
@@ -75,6 +76,7 @@ const XL_TRANSFERS = [
   xc("Loại", (x) => (x.direction === "in" ? "Nhận điểm" : "Chuyển đi")),
   xc("Mã điểm", (x) => x.display_point),
   xc("Điểm bán", (x) => x.point_name || x.display_point),
+  xc("Địa chỉ", (x) => x.point_address),
   xc("Nhận từ / Chuyển cho", (x) => x.counterpart_label),
   xc("Lý do", (x) => x.reason || "Gán lại"),
   xc("Lượt chuyển kèm", (x) => x.participations_moved, "int"),
@@ -353,8 +355,8 @@ export async function render({ container, params, query }) {
       // Lịch sử NV không có MST / tài khoản nhận thưởng / ngày tạo điểm → bổ sung từ tổng quan NPP
       // (cùng phạm vi server); không tải được thì vẫn xuất với dữ liệu đang có.
       // Sheet Tham gia lấy thẳng staff_history().participations (doc/10 §4): lý do từ chối, toạ độ CỦA LƯỢT,
-      // SĐT điểm (None = điểm ngoài NPP / đã xoá → ô trống). Chỉ backend cũ chưa có point_phone mới tra SĐT
-      // theo điểm đã tải.
+      // SĐT + địa chỉ điểm (None = điểm ngoài NPP / đã xoá → ô trống); sheet Bàn giao lấy point_address của
+      // nhật ký. Chỉ backend cũ chưa có point_phone / point_address mới tra theo điểm đã tải.
       let ov = {};
       let enrichFailed = false; // báo cảnh báo thay vì "thành công" — cột MST / TK nhận thưởng sẽ trống
       try {
@@ -364,18 +366,21 @@ export async function render({ container, params, query }) {
         enrichFailed = true;
       }
       const byName = new Map((ov.points || []).map((p) => [p.name, p]));
-      const phoneOf = (dp) => (pointsByName.get(dp) || byName.get(dp) || {}).phone;
+      const pointOf = (dp) => pointsByName.get(dp) || byName.get(dp) || {};
+      const addressOf = (r) => ("point_address" in r ? r.point_address : pointOf(r.display_point).address_line);
       const pointRows = points.map((p) => ({ ...byName.get(p.name), ...p }));
       const partRows = parts.map((r) => ({
         ...r,
-        point_phone: "point_phone" in r ? r.point_phone : phoneOf(r.display_point),
+        point_phone: "point_phone" in r ? r.point_phone : pointOf(r.display_point).phone,
+        point_address: addressOf(r),
         staff_name: st.full_name || st.user,
         staff_left: !!st.resigned,
       }));
+      const transferRows = transfers.map((x) => ({ ...x, point_address: addressOf(x) }));
       await downloadXlsx(fileStamp(ov.customer_name || ctx.nppCustomer || "", "LichSuNhanVien"), [
         { name: "Điểm bán", columns: XL_POINTS, rows: pointRows },
         { name: "Tham gia", columns: XL_PARTS, rows: partRows },
-        { name: "Bàn giao", columns: XL_TRANSFERS, rows: transfers },
+        { name: "Bàn giao", columns: XL_TRANSFERS, rows: transferRows },
       ]);
       if (enrichFailed && points.length) {
         toast(
